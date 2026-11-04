@@ -23,6 +23,7 @@ final class HtmlFormatter
         $appName = (string) $this->config->get('app.name', 'SearPHP');
         $version = (string) $this->config->get('app.version', '1.0.0');
         $basePath = rtrim($basePath, '/');
+        $authRequired = (bool) $this->config->get('security.api_auth', true);
         $engines = $set !== null ? array_keys($set->engineStatus) : [];
 
         ob_start();

@@ -1,4 +1,5 @@
 .env
+config/api_keys.txt
 var/cache/*
 var/log/*
 !var/cache/.gitkeep

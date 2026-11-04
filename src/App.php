@@ -16,6 +16,7 @@ use SearPHP\Http\Request;
 use SearPHP\Http\Response;
 use SearPHP\Http\Router;
 use SearPHP\Mcp\McpServer;
+use SearPHP\Security\ApiKeyStore;
 use SearPHP\Support\Logger;
 
 final class App
@@ -33,6 +34,7 @@ final class App
         private readonly McpServer $mcpServer,
         private readonly Cors $cors,
         private readonly CacheInterface $cache,
+        private readonly ApiKeyStore $apiKeys,
         private readonly Logger $logger,
     ) {
         $this->router = new Router();
@@ -51,6 +53,17 @@ final class App
 
             if ($request->path !== '/health') {
                 $this->rateLimit($request);
+            }
+
+            if ($this->authRequired($request) && !$this->apiKeys->validateRequest($request)) {
+                $response = Response::error(
+                    'unauthorized',
+                    'A valid API key is required. Send ?key=..., X-API-Key, or Authorization: Bearer.',
+                    401,
+                    !$request->accepts('application/json')
+                )->withHeader('WWW-Authenticate', 'Bearer realm="SearPHP"');
+
+                return $this->finalize($response, $request, $requestId, $started);
             }
 
             $response = $this->router->dispatch($request);
@@ -123,6 +136,13 @@ final class App
             200,
             'text/plain; charset=utf-8'
         ));
+        $this->router->get('/app.js', function (Request $request): Response {
+            $file = (string) $this->config->get('app.root', dirname(__DIR__)) . '/public/app.js';
+            $body = is_file($file) ? (string) file_get_contents($file) : '';
+
+            return Response::text($body, $body === '' ? 404 : 200, 'application/javascript; charset=utf-8')
+                ->withHeader('Cache-Control', 'public, max-age=3600');
+        });
         $this->router->get('/openapi.yaml', function (Request $request): Response {
             $file = (string) $this->config->get('app.root', dirname(__DIR__)) . '/openapi.yaml';
             $body = is_file($file) ? (string) file_get_contents($file) : '';
@@ -130,6 +150,29 @@ final class App
             return Response::text($body, $body === '' ? 404 : 200, 'application/yaml; charset=utf-8');
         });
         $this->router->post('/mcp', fn (Request $request): Response => $this->mcpServer->handle($request));
+    }
+
+    private function authRequired(Request $request): bool
+    {
+        if (!$this->apiKeys->enabled()) {
+            return false;
+        }
+
+        if (in_array($request->path, ['/', '/health', '/robots.txt', '/openapi.yaml', '/app.js'], true)) {
+            return false;
+        }
+
+        // Public HTML forms: the key is entered in the browser before a search.
+        if (
+            $request->method === 'GET'
+            && in_array($request->path, ['/search', '/images'], true)
+            && trim((string) ($request->input('q') ?? $request->input('query') ?? '')) === ''
+            && $request->preferredFormat('json') === 'html'
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     private function rateLimit(Request $request): void
@@ -168,7 +211,7 @@ final class App
             'X-Frame-Options' => 'DENY',
             'X-XSS-Protection' => '0',
             'Permissions-Policy' => 'interest-cohort=()',
-            'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'; img-src https: http: data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+            'Content-Security-Policy' => "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src https: http: data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
             'X-Request-Id' => $requestId,
             'X-Search-Time-Ms' => (string) $elapsed,
         ]);

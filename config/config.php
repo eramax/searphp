@@ -49,6 +49,8 @@ return [
         'rate_limit' => Env::int('RATE_LIMIT', 120),
         'rate_window' => Env::int('RATE_WINDOW', 60),
         'trust_proxy' => Env::bool('TRUST_PROXY', false),
+        'api_auth' => Env::bool('API_AUTH_ENABLED', true),
+        'api_keys_file' => Env::get('API_KEYS_FILE', $root . '/config/api_keys.txt'),
     ],
 
     // PHP file cache. No database is used.

@@ -10,6 +10,10 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local SearPHP
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+  - ApiKeyQuery: []
 
 tags:
   - name: Search
@@ -88,6 +92,8 @@ paths:
                 type: string
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
         '500':
@@ -124,6 +130,8 @@ paths:
                 type: string
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
 
@@ -162,6 +170,8 @@ paths:
                 type: string
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
     post:
@@ -183,6 +193,8 @@ paths:
                 $ref: '#/components/schemas/SearchResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /engines:
     get:
@@ -210,6 +222,8 @@ paths:
                     properties:
                       web: {type: array, items: {type: string}}
                       images: {type: array, items: {type: string}}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /health:
     get:
@@ -246,8 +260,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/McpResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: key
+
   parameters:
     Q:
       name: q
@@ -342,6 +371,15 @@ components:
   responses:
     BadRequest:
       description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid API key
+      headers:
+        WWW-Authenticate:
+          schema: {type: string}
       content:
         application/json:
           schema:

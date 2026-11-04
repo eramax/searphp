@@ -8,7 +8,7 @@ use SearPHP\Config;
 
 final class Cors
 {
-    private const ALLOW_HEADERS = 'Content-Type, Accept, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id';
+    private const ALLOW_HEADERS = 'Content-Type, Accept, Authorization, X-API-Key, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id';
     private const EXPOSE_HEADERS = 'X-Request-Id, X-Search-Time-Ms, X-Cache, X-Engines, X-Partial, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After';
     private const ALLOW_METHODS = 'GET, POST, OPTIONS';
 

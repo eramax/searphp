@@ -2,13 +2,33 @@
 
 Base URL: `http://localhost:8080`
 
-The API is open and rate-limited by IP. There are no API keys and no database. A PHP file cache stores results and rate-limit counters.
+The API requires an API key by default and is also rate-limited by IP. A PHP file cache stores results and rate-limit counters. There is no database.
+
+## Authentication
+
+Send one of:
+
+```http
+Authorization: Bearer sk_...
+X-API-Key: sk_...
+GET /search?q=rust&key=sk_...
+```
+
+Keys live in `config/api_keys.txt` (outside `public_html`). Use `sha256:<hash>` lines; plain lines are accepted but not recommended. Generate:
+
+```bash
+php bin/key.php --write "agent-name"
+```
+
+`GET /`, `/health`, `/app.js`, `/robots.txt`, `/openapi.yaml`, and the empty browser forms `/search` and `/images` are public. Search/image/MCP/engines requests require the key.
+
+The HTML UI has an **API key** panel; the key is stored only in the browser's `localStorage` and sent with its searches. Prefer the `Authorization` header for API clients, because query-string keys can appear in access logs.
 
 All responses are UTF-8. JSON is encoded with unescaped slashes/Unicode and invalid UTF-8 substituted, so one bad result cannot break the whole response.
 
 ## CORS
 
-CORS defaults to `Access-Control-Allow-Origin: *`, with `GET, POST, OPTIONS` and the headers `Content-Type, Accept, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id`.
+CORS defaults to `Access-Control-Allow-Origin: *`, with `GET, POST, OPTIONS` and the headers `Content-Type, Accept, Authorization, X-API-Key, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id`.
 
 `OPTIONS` requests return `204` with the full preflight response before rate limiting.
 
@@ -273,6 +293,7 @@ The text content is Markdown. `structuredContent` contains the native JSON for c
 | Status | Code | Cause |
 |---|---|---|
 | 400 | `bad_request` | Invalid query, engine, format, language, time range |
+| 401 | `unauthorized` | Missing/invalid API key |
 | 404 | `not_found` | Unknown route or disabled MCP |
 | 405 | `method_not_allowed` | Wrong HTTP method |
 | 429 | `rate_limited` | Local rate limit; see `Retry-After` |

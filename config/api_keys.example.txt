@@ -1,0 +1,13 @@
+# API keys for SearPHP.
+#
+# Copy this file to api_keys.txt (same directory) and add one key per line.
+# Recommended: store a SHA-256 hash, not the plain key.
+#
+# Generate a key and append its hash:
+#   php bin/key.php --write
+#
+# Format:
+#   sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+#
+# Plain keys are also accepted, but hashes are safer:
+#   sk_my_plain_key

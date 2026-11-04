@@ -26,6 +26,7 @@ use SearPHP\Search\Ranker;
 use SearPHP\Search\Result;
 use SearPHP\Search\SearchResultSet;
 use SearPHP\Search\UrlCanonicalizer;
+use SearPHP\Security\ApiKeyStore;
 
 /** @var Config $config */
 $config = require dirname(__DIR__) . '/bootstrap.php';
@@ -325,6 +326,37 @@ test('CORS wildcard and allowlist', function (): void {
     $unknown = new Request('GET', '/search', [], ['origin' => 'https://evil.example'], '', []);
     $response = $cors->apply(Response::text('ok'), $unknown);
     assert_true(!isset($response->headers()['Access-Control-Allow-Origin']));
+});
+
+test('API key store accepts headers, bearer, and query keys', function (): void {
+    $file = sys_get_temp_dir() . '/searphp-keys-' . bin2hex(random_bytes(4));
+    $plain = 'sk_plain_test_key';
+    $hashed = 'sk_hashed_test_key';
+    file_put_contents($file, "sha256:" . hash('sha256', $hashed) . "\n" . $plain . "\n");
+
+    $store = new ApiKeyStore(new Config([
+        'security' => [
+            'api_auth' => true,
+            'api_keys_file' => $file,
+        ],
+    ]));
+
+    assert_true($store->validate($plain));
+    assert_true($store->validate($hashed));
+    assert_true(!$store->validate('wrong'));
+
+    $bearer = new Request('GET', '/search', [], ['authorization' => 'Bearer ' . $hashed], '', []);
+    assert_same($hashed, $store->providedKey($bearer));
+    assert_true($store->validateRequest($bearer));
+
+    $header = new Request('GET', '/search', [], ['x-api-key' => $plain], '', []);
+    assert_true($store->validateRequest($header));
+
+    $query = new Request('GET', '/search', ['key' => $plain], [], '', []);
+    assert_true($store->validateRequest($query));
+    assert_true(!$store->validateRequest(new Request('GET', '/search', [], [], '', [])));
+
+    @unlink($file);
 });
 
 test('File cache get/set/incr', function (): void {

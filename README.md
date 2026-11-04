@@ -2,7 +2,9 @@
 
 A fast, self-hosted web search API built with **PHP only** (8.2+, tested through 8.5).
 
-No database, no Google API keys, no SerpAPI, no Brave API key, no OpenSERP, no Go/Node/Chromium sidecar, and no external services. The app is one PHP codebase; the cache and rate-limit counters are plain files under `var/cache`.
+No database, no Google API keys, no SerpAPI, no Brave API key, no OpenSERP, no Go/Node/Chromium sidecar, and no external search services. The app is one PHP codebase; the cache and rate-limit counters are plain files under `var/cache`.
+
+SearPHP requires its own API key by default. Keys are stored hashed in `config/api_keys.txt` (outside `public_html`).
 
 It aggregates DuckDuckGo, Bing, Brave, Wikipedia, DuckDuckGo Images, and Bing Images, deduplicates and ranks the results, and returns **Markdown, JSON, or SearXNG-compatible JSON** for AI agents and command-line use.
 
@@ -30,7 +32,7 @@ All of these are implemented in PHP and need no key.
 
 **duck.ai is not included.** Its chat endpoint requires solving a JavaScript proof-of-work (`x-vqd-hash-1`), which needs a headless browser.
 
-No other applications, external search services, API keys, or accounts are used.
+No other applications, external search services, external keys, or accounts are used. The only key is SearPHP's own API key.
 
 ## Quick start with Podman
 
@@ -44,10 +46,23 @@ podman run -d --name searphp -p 8080:80 \
   localhost/searphp:latest
 ```
 
-Open <http://localhost:8080/> or:
+Generate an API key before searching:
 
 ```bash
-curl "http://localhost:8080/search?q=rust+programming&format=md&limit=10"
+podman exec searphp php bin/key.php --write
+podman exec searphp chmod 644 /var/www/html/config/api_keys.txt
+```
+
+The second command makes the **hashed** key file readable by Apache (`www-data`). The command prints the key once; keep it. Open <http://localhost:8080/>, click **API key**, paste it, and save it in the browser.
+
+For a persistent key across container recreation, generate it on the host and bind-mount it read-only at `/var/www/html/config/api_keys.txt`, or use a Compose file mount for that single file.
+
+For API clients:
+
+```bash
+KEY='sk_...'
+curl -H "Authorization: Bearer $KEY" \
+  "http://localhost:8080/search?q=rust+programming&format=md&limit=10"
 ```
 
 With a Compose provider:
@@ -55,7 +70,11 @@ With a Compose provider:
 ```bash
 cp .env.example .env
 podman compose up -d --build
+podman compose exec app php bin/key.php --write
+podman compose exec app chmod 644 /var/www/html/config/api_keys.txt
 ```
+
+For Compose, bind-mount `config/api_keys.txt` into `/var/www/html/config/api_keys.txt` if you want the key to survive container recreation.
 
 ### Shared hosting (cPanel)
 
@@ -66,6 +85,38 @@ PHP **8.2+** works (tested on 8.2, 8.3, and 8.5). No MySQL, SSH, Composer, or ex
 The `searphp-cache` volume keeps cached searches across container restarts. If you delete it, the cache is rebuilt automatically.
 
 ## API
+
+### Authentication
+
+All search/image/MCP/engines endpoints require one of:
+
+```http
+Authorization: Bearer sk_...
+X-API-Key: sk_...
+GET /search?q=rust&key=sk_...
+```
+
+The browser UI stores the key in `localStorage` and sends it with the form and internal links. For API clients, prefer the `Authorization` header: query-string keys can appear in access logs.
+
+Key file:
+
+```
+config/api_keys.txt
+```
+
+Use `sha256:<hash>` lines. Generate a key and append its hash:
+
+```bash
+php bin/key.php --write "agent-name"
+```
+
+or print a key and hash without writing:
+
+```bash
+php bin/key.php
+```
+
+`API_AUTH_ENABLED=false` disables the check (not recommended on a public host). `API_KEYS_FILE` can point to a file outside the project.
 
 ### Search
 
@@ -162,6 +213,8 @@ All settings are environment variables; see `.env.example`.
 | `CORS_ORIGINS` | `*` | `*` or a comma-separated allowlist |
 | `RATE_LIMIT` | `120` | Requests per window per IP |
 | `RATE_WINDOW` | `60` | Window in seconds |
+| `API_AUTH_ENABLED` | `true` | Require a key |
+| `API_KEYS_FILE` | `config/api_keys.txt` | Key file path |
 | `CACHE_DRIVER` | `file` | `file` (or `none`, not recommended) |
 | `CACHE_TTL` | `600` | Web result cache TTL |
 | `CACHE_IMAGE_TTL` | `1800` | Image result cache TTL |
@@ -169,7 +222,7 @@ All settings are environment variables; see `.env.example`.
 | `MCP_ENABLED` | `true` | Expose `POST /mcp` |
 | `LOG_QUERIES` | `false` | Log full query text (hashes otherwise) |
 
-There is no API-key authentication and no database. The API is open and limited by IP; put it behind a reverse proxy or firewall if it is exposed publicly.
+There is no database. API authentication is required by default and rate limiting is still applied per IP; put the service behind a reverse proxy or firewall as an extra layer.
 
 ## How it is fast
 
@@ -184,12 +237,14 @@ There is no API-key authentication and no database. The API is open and limited 
 ## Security
 
 - CORS defaults to `*` for the read-only API (no cookies, no credentials). Set an allowlist when needed.
+- API key authentication is required by default; prefer `Authorization: Bearer` over query keys.
 - Per-IP rate limiting with `429` and `Retry-After`.
 - Strict input validation; no user-supplied URL is fetched, so there is no SSRF path in the search API.
 - Upstream TLS verification, HTTP/HTTPS only, redirect cap, response-size cap, and timeouts.
 - Markdown escaping and HTML escaping; only `http`/`https` links are emitted.
 - Security headers and a strict CSP on the small HTML page.
-- No API keys, no external accounts, no database, and query text is not logged by default.
+- API keys are stored as SHA-256 hashes, not plaintext, and the key file is outside `public_html`.
+- No external search accounts or database; query text is not logged by default.
 
 See [docs/SECURITY.md](docs/SECURITY.md).
 

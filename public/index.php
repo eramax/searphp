@@ -20,6 +20,7 @@ use SearPHP\Mcp\McpServer;
 use SearPHP\Search\EngineLimiter;
 use SearPHP\Search\EngineStats;
 use SearPHP\Search\SearchService;
+use SearPHP\Security\ApiKeyStore;
 use SearPHP\Support\Logger;
 
 /** @var \SearPHP\Config $config */
@@ -57,6 +58,7 @@ $app = new App(
     $mcp,
     new Cors($config),
     $cache,
+    new ApiKeyStore($config),
     $logger
 );
 

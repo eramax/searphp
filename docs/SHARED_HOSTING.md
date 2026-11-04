@@ -107,12 +107,24 @@ Some hosts use mod_php and ignore `.user.ini`; use cPanel's MultiPHP INI Editor 
 
 ## Security on a shared host
 
-There is no API authentication in the app. A public endpoint can be abused and may hit the host's CPU/bandwidth limits. Choose at least one:
+API authentication is required by default. Create the key file outside `public_html`:
+
+```bash
+cd /home/USER/searphp
+php bin/key.php --write "agent-name"
+chmod 600 config/api_keys.txt
+```
+
+The command prints the key once. Add it in the HTML **API key** panel, or send it as `Authorization: Bearer ...`.
+
+As an additional layer, use one of:
 
 - cPanel → **Directory Privacy / Password Protect Directory** on the app path (Basic Auth).
 - Cloudflare Access / WAF / rate limiting.
 - Firewall or IP allowlist if your agents have fixed IPs.
 - Put the app behind a private VPN.
+
+Never place `config/api_keys.txt` inside `public_html`.
 
 Also:
 

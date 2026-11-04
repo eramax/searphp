@@ -7,6 +7,7 @@
  * @var list<string> $engines
  * @var string $basePath
  * @var bool $imagesMode
+ * @var bool $authRequired
  */
 
 use SearPHP\Format\Html;
@@ -101,6 +102,21 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         }
         .modes a.active { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
         .modes a:hover { color: var(--fg); }
+        .key-panel { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+        .key-panel summary { cursor: pointer; }
+        .key-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 9px; }
+        .key-row input {
+            flex: 1 1 220px; border: 1px solid var(--line); border-radius: 8px;
+            padding: 8px 10px; background: var(--bg); color: var(--fg); font: inherit;
+        }
+        .key-row button {
+            border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px;
+            background: var(--card); color: var(--fg); font: inherit; cursor: pointer;
+        }
+        .key-status { font-size: 12px; }
+        .key-status.ok { color: var(--accent); }
+        .key-status.warn { color: var(--warn); }
+        .key-status.muted { color: var(--muted); }
         form.search {
             display: flex; gap: 8px; flex-wrap: wrap;
             background: var(--card); border: 1px solid var(--line);
@@ -174,11 +190,23 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
     <p class="tagline">Fast web and image search, Markdown and JSON for agents. No trackers.</p>
 
     <div class="modes" role="tablist" aria-label="Search type">
-        <a role="tab" class="<?= $imagesMode ? '' : 'active' ?>" aria-selected="<?= $imagesMode ? 'false' : 'true' ?>" href="<?= Html::e($webModeUrl) ?>">Web</a>
-        <a role="tab" class="<?= $imagesMode ? 'active' : '' ?>" aria-selected="<?= $imagesMode ? 'true' : 'false' ?>" href="<?= Html::e($imagesModeUrl) ?>">Images</a>
+        <a role="tab" data-auth-link class="<?= $imagesMode ? '' : 'active' ?>" aria-selected="<?= $imagesMode ? 'false' : 'true' ?>" href="<?= Html::e($webModeUrl) ?>">Web</a>
+        <a role="tab" data-auth-link class="<?= $imagesMode ? 'active' : '' ?>" aria-selected="<?= $imagesMode ? 'true' : 'false' ?>" href="<?= Html::e($imagesModeUrl) ?>">Images</a>
     </div>
 
-    <form class="search" action="<?= Html::e($formAction) ?>" method="get">
+    <details class="key-panel">
+        <summary>API key <?= $authRequired ? '(required)' : '(optional)' ?></summary>
+        <div class="key-row">
+            <input id="api-key-input" type="password" placeholder="Paste API key" autocomplete="off" spellcheck="false">
+            <button type="button" id="api-key-save">Save key</button>
+            <button type="button" id="api-key-clear">Clear</button>
+            <span id="api-key-status" class="key-status muted">No key saved.</span>
+        </div>
+        <p>Stored in this browser only (localStorage) and sent with this UI's searches. For API clients use <code>Authorization: Bearer</code>.</p>
+    </details>
+
+    <form class="search" action="<?= Html::e($formAction) ?>" method="get" data-auth-required="<?= $authRequired ? '1' : '0' ?>">
+        <input type="hidden" name="key" id="api-key-field" value="">
         <input type="search" name="q" value="<?= Html::e($q) ?>" placeholder="Search the web…" autofocus>
         <select name="format" aria-label="Response format">
             <option value="html"<?= $format === 'html' ? ' selected' : '' ?>>HTML</option>
@@ -259,13 +287,13 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         <?php if ($query !== null && ($set->page > 1 || $set->hasMore)): ?>
             <nav class="pagination" aria-label="Search results pages">
                 <?php if ($set->page > 1): ?>
-                    <a href="<?= Html::e($pageUrl($set->page - 1)) ?>" rel="prev">← Previous</a>
+                    <a data-auth-link href="<?= Html::e($pageUrl($set->page - 1)) ?>" rel="prev">← Previous</a>
                 <?php else: ?>
                     <span class="disabled">← Previous</span>
                 <?php endif; ?>
                 <span class="current">Page <?= Html::e((string) $set->page) ?></span>
                 <?php if ($set->hasMore && $set->page < $set->maxPage): ?>
-                    <a href="<?= Html::e($pageUrl($set->page + 1)) ?>" rel="next">Next →</a>
+                    <a data-auth-link href="<?= Html::e($pageUrl($set->page + 1)) ?>" rel="next">Next →</a>
                 <?php else: ?>
                     <span class="disabled">Next →</span>
                 <?php endif; ?>
@@ -276,15 +304,15 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
             <h2>Related searches</h2>
             <div class="suggestions">
                 <?php foreach ($set->suggestions as $suggestion): ?>
-                    <a href="<?= Html::e($searchUrl . '?' . http_build_query(['q' => $suggestion], '', '&', PHP_QUERY_RFC3986)) ?>"><?= Html::e($suggestion) ?></a>
+                    <a data-auth-link href="<?= Html::e($searchUrl . '?' . http_build_query(['q' => $suggestion], '', '&', PHP_QUERY_RFC3986)) ?>"><?= Html::e($suggestion) ?></a>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
         <div class="links">
-            <a href="<?= Html::e($jsonUrl) ?>">JSON</a>
-            <a href="<?= Html::e($mdUrl) ?>">Markdown</a>
-            <a href="<?= Html::e($imagesUrl) ?>">Images</a>
+            <a data-auth-link href="<?= Html::e($jsonUrl) ?>">JSON</a>
+            <a data-auth-link href="<?= Html::e($mdUrl) ?>">Markdown</a>
+            <a data-auth-link href="<?= Html::e($imagesUrl) ?>">Images</a>
         </div>
 
         <?php if ($set->partial): ?>
@@ -311,5 +339,6 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         Respect each engine's terms and rate limits.
     </footer>
 </div>
+<script src="<?= Html::e(($base !== '' ? $base : '') . '/app.js') ?>" defer></script>
 </body>
 </html>
