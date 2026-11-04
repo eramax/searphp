@@ -37,6 +37,11 @@ final class SearchController
 
     public function search(Request $request): Response
     {
+        $rawQuery = trim((string) ($request->input('q') ?? $request->input('query') ?? ''));
+        if ($rawQuery === '' && $request->path === '/search' && $request->preferredFormat('json') === 'html') {
+            return Response::html($this->html->page(null, null, $request->basePath(), false));
+        }
+
         $query = Query::fromRequest($request, $this->config, $this->engines->ids());
         $set = $this->search->search($query);
 
@@ -46,7 +51,7 @@ final class SearchController
     public function images(Request $request): Response
     {
         $rawQuery = trim((string) ($request->input('q') ?? $request->input('query') ?? ''));
-        if ($rawQuery === '' && $request->preferredFormat('json') === 'html') {
+        if ($rawQuery === '' && $request->path === '/images' && $request->preferredFormat('json') === 'html') {
             return Response::html($this->html->page(null, null, $request->basePath(), true));
         }
 

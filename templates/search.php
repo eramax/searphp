@@ -18,7 +18,7 @@ $homeUrl = $base !== '' ? $base . '/' : '/';
 $searchUrl = $base . '/search';
 $imagesBase = $base . '/images';
 $formAction = $imagesMode ? $imagesBase : $searchUrl;
-$webModeUrl = $searchUrl . ($q !== '' ? '?' . http_build_query(['q' => $q], '', '&', PHP_QUERY_RFC3986) : '');
+$webModeUrl = $q !== '' ? $searchUrl . '?' . http_build_query(['q' => $q], '', '&', PHP_QUERY_RFC3986) : $homeUrl;
 $imagesModeUrl = $imagesBase . ($q !== '' ? '?' . http_build_query(['q' => $q], '', '&', PHP_QUERY_RFC3986) : '');
 $jsonUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'json'], '', '&', PHP_QUERY_RFC3986);
 $mdUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'md'], '', '&', PHP_QUERY_RFC3986);
