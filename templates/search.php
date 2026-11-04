@@ -6,6 +6,7 @@
  * @var \SearPHP\Search\Query|null $query
  * @var list<string> $engines
  * @var string $basePath
+ * @var bool $imagesMode
  */
 
 use SearPHP\Format\Html;
@@ -16,9 +17,35 @@ $base = rtrim($basePath ?? '', '/');
 $homeUrl = $base !== '' ? $base . '/' : '/';
 $searchUrl = $base . '/search';
 $imagesBase = $base . '/images';
+$formAction = $imagesMode ? $imagesBase : $searchUrl;
+$webModeUrl = $searchUrl . ($q !== '' ? '?' . http_build_query(['q' => $q], '', '&', PHP_QUERY_RFC3986) : '');
+$imagesModeUrl = $imagesBase . ($q !== '' ? '?' . http_build_query(['q' => $q], '', '&', PHP_QUERY_RFC3986) : '');
 $jsonUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'json'], '', '&', PHP_QUERY_RFC3986);
 $mdUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'md'], '', '&', PHP_QUERY_RFC3986);
 $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'], '', '&', PHP_QUERY_RFC3986);
+
+$pageParams = ['q' => $q, 'format' => 'html', 'limit' => $query?->limit ?? 20];
+if ($query !== null) {
+    if ($query->engines !== []) {
+        $pageParams['engines'] = implode(',', $query->engines);
+    }
+    if ($query->safesearch > 0) {
+        $pageParams['safesearch'] = $query->safesearch;
+    }
+    if ($query->timeRange !== null) {
+        $pageParams['time'] = $query->timeRange;
+    }
+    if ($query->includeImages) {
+        $pageParams['include_images'] = '1';
+    }
+}
+$paginationBase = $imagesMode ? $imagesBase : $searchUrl;
+$pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_query(
+    array_merge($pageParams, ['page' => $page]),
+    '',
+    '&',
+    PHP_QUERY_RFC3986
+);
 ?>
 <!doctype html>
 <html lang="en">
@@ -67,6 +94,13 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
         .brand span { color: var(--accent); }
         .version { color: var(--muted); font-size: 12px; }
         .tagline { color: var(--muted); margin: -8px 0 22px; font-size: 14px; }
+        .modes { display: flex; gap: 6px; margin: 0 0 12px; }
+        .modes a {
+            color: var(--muted); text-decoration: none; font-size: 13px;
+            border: 1px solid transparent; border-radius: 999px; padding: 5px 12px;
+        }
+        .modes a.active { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
+        .modes a:hover { color: var(--fg); }
         form.search {
             display: flex; gap: 8px; flex-wrap: wrap;
             background: var(--card); border: 1px solid var(--line);
@@ -87,7 +121,8 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
             border-color: var(--accent); background: var(--accent); color: #fff;
             font-weight: 650; cursor: pointer;
         }
-        .meta { color: var(--muted); font-size: 13px; margin: 14px 0 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .meta { color: var(--muted); font-size: 13px; margin: 14px 0 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .meta-note { color: var(--muted); font-size: 12px; margin: 0 0 18px; }
         .pill { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; background: var(--card); }
         .warn { color: var(--warn); background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); padding: 10px 12px; border-radius: 10px; font-size: 14px; margin: 14px 0; }
         h2 { font-size: 16px; letter-spacing: -0.01em; margin: 28px 0 12px; }
@@ -115,6 +150,10 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
         details ul { margin: 8px 0 0; padding-left: 20px; }
         .links { display: flex; gap: 14px; flex-wrap: wrap; margin: 18px 0 0; font-size: 13px; }
         .links a { color: var(--accent); text-decoration: none; }
+        .pagination { display: flex; align-items: center; gap: 10px; margin: 24px 0 0; font-size: 13px; }
+        .pagination a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px; background: var(--card); }
+        .pagination .current { color: var(--muted); }
+        .pagination .disabled { color: var(--muted); opacity: 0.45; padding: 6px 0; }
         footer { margin-top: 38px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
         code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
         .examples { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: var(--muted); }
@@ -132,9 +171,14 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
         <span class="version">v<?= Html::e($version) ?></span>
     </header>
 
-    <p class="tagline">Fast web search, Markdown and JSON for agents. No trackers.</p>
+    <p class="tagline">Fast web and image search, Markdown and JSON for agents. No trackers.</p>
 
-    <form class="search" action="<?= Html::e($searchUrl) ?>" method="get">
+    <div class="modes" role="tablist" aria-label="Search type">
+        <a role="tab" class="<?= $imagesMode ? '' : 'active' ?>" aria-selected="<?= $imagesMode ? 'false' : 'true' ?>" href="<?= Html::e($webModeUrl) ?>">Web</a>
+        <a role="tab" class="<?= $imagesMode ? 'active' : '' ?>" aria-selected="<?= $imagesMode ? 'true' : 'false' ?>" href="<?= Html::e($imagesModeUrl) ?>">Images</a>
+    </div>
+
+    <form class="search" action="<?= Html::e($formAction) ?>" method="get">
         <input type="search" name="q" value="<?= Html::e($q) ?>" placeholder="Search the web…" autofocus>
         <select name="format" aria-label="Response format">
             <option value="html"<?= $format === 'html' ? ' selected' : '' ?>>HTML</option>
@@ -147,20 +191,24 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
             <option value="1"<?= ($query?->safesearch ?? 0) === 1 ? ' selected' : '' ?>>Moderate</option>
             <option value="2"<?= ($query?->safesearch ?? 0) === 2 ? ' selected' : '' ?>>Strict</option>
         </select>
-        <button type="submit">Search</button>
+        <button type="submit"><?= $imagesMode ? 'Search Images' : 'Search' ?></button>
     </form>
 
     <?php if ($set !== null): ?>
         <div class="meta">
-            <span class="pill"><?= count($set->results) ?> results</span>
+            <span class="pill" title="Final results after de-duplication, ranking, and the limit parameter"><?= count($set->results) ?> shown</span>
             <?php if ($set->images !== []): ?><span class="pill"><?= count($set->images) ?> images</span><?php endif; ?>
-            <span><?= $set->cached ? 'cached' : Html::e((string) $set->tookMs) . ' ms' ?></span>
+            <span title="<?= $set->cached ? 'Served from the PHP file cache; no engine requests were made' : 'Time spent fetching and ranking results' ?>"><?= $set->cached ? 'cached' : Html::e((string) $set->tookMs) . ' ms' ?></span>
             <?php foreach ($engines as $engine): ?>
                 <?php if (($set->engineStatus[$engine]['status'] ?? '') !== 'disabled'): ?>
-                    <span class="pill"><?= Html::e($engine) ?> · <?= Html::e((string) ($set->engineStatus[$engine]['count'] ?? 0)) ?></span>
+                    <span class="pill" title="Raw results returned by <?= Html::e($engine) ?> before de-duplication"><?= Html::e($engine) ?> · <?= Html::e((string) ($set->engineStatus[$engine]['count'] ?? 0)) ?></span>
                 <?php endif; ?>
             <?php endforeach; ?>
         </div>
+        <p class="meta-note">
+            “shown” is the final list after de-duplication and the <code>limit</code> cap.
+            Each engine number is its raw result count before de-duplication; it is not the number displayed.
+        </p>
 
         <?php if ($set->partial): ?>
             <div class="warn">Some engines failed or were rate-limited. Results are partial.</div>
@@ -206,6 +254,22 @@ $imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'
                     </figure>
                 <?php endforeach; ?>
             </div>
+        <?php endif; ?>
+
+        <?php if ($query !== null && ($set->page > 1 || $set->hasMore)): ?>
+            <nav class="pagination" aria-label="Search results pages">
+                <?php if ($set->page > 1): ?>
+                    <a href="<?= Html::e($pageUrl($set->page - 1)) ?>" rel="prev">← Previous</a>
+                <?php else: ?>
+                    <span class="disabled">← Previous</span>
+                <?php endif; ?>
+                <span class="current">Page <?= Html::e((string) $set->page) ?></span>
+                <?php if ($set->hasMore && $set->page < $set->maxPage): ?>
+                    <a href="<?= Html::e($pageUrl($set->page + 1)) ?>" rel="next">Next →</a>
+                <?php else: ?>
+                    <span class="disabled">Next →</span>
+                <?php endif; ?>
+            </nav>
         <?php endif; ?>
 
         <?php if ($set->suggestions !== []): ?>

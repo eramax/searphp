@@ -25,6 +25,8 @@ final readonly class SearchResultSet
         public bool $partial = false,
         public int $page = 1,
         public int $limit = 20,
+        public bool $hasMore = false,
+        public int $maxPage = 10,
     ) {
     }
 
@@ -42,6 +44,8 @@ final readonly class SearchResultSet
             $this->partial,
             $this->page,
             $this->limit,
+            $this->hasMore,
+            $this->maxPage,
         );
     }
 
@@ -61,6 +65,8 @@ final readonly class SearchResultSet
             'partial' => $this->partial,
             'page' => $this->page,
             'limit' => $this->limit,
+            'has_more' => $this->hasMore,
+            'max_page' => $this->maxPage,
         ];
     }
 
@@ -95,6 +101,8 @@ final readonly class SearchResultSet
             partial: (bool) ($data['partial'] ?? false),
             page: (int) ($data['page'] ?? 1),
             limit: (int) ($data['limit'] ?? 20),
+            hasMore: (bool) ($data['has_more'] ?? false),
+            maxPage: (int) ($data['max_page'] ?? 10),
         );
     }
 }

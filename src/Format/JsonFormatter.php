@@ -46,6 +46,13 @@ final class JsonFormatter
                 'page' => $set->page,
                 'limit' => $set->limit,
                 'engines' => $set->engineStatus,
+                'pagination' => [
+                    'page' => $set->page,
+                    'limit' => $set->limit,
+                    'has_more' => $set->hasMore,
+                    'max_page' => $set->maxPage,
+                    'next_page' => ($set->hasMore && $set->page < $set->maxPage) ? $set->page + 1 : null,
+                ],
             ],
         ];
     }

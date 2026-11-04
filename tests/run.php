@@ -230,6 +230,10 @@ test('JSON formatter schema', function (): void {
         results: [$result],
         engineStatus: ['bing' => ['status' => 'ok', 'ms' => 10, 'count' => 1]],
         tookMs: 12,
+        page: 1,
+        limit: 3,
+        hasMore: true,
+        maxPage: 10,
     );
 
     $data = (new JsonFormatter())->format($set, new Query('test'));
@@ -238,6 +242,8 @@ test('JSON formatter schema', function (): void {
     assert_same(1, $data['count']);
     assert_same(1, $data['results'][0]['position']);
     assert_same('bing', $data['results'][0]['engine']);
+    assert_same(true, $data['meta']['pagination']['has_more']);
+    assert_same(2, $data['meta']['pagination']['next_page']);
 });
 
 test('SearXNG-compatible formatter', function (): void {

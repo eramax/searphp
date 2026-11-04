@@ -105,6 +105,17 @@ final class App
         $this->router->post('/search', fn (Request $request): Response => $this->searchController->search($request));
         $this->router->get('/images', fn (Request $request): Response => $this->searchController->images($request));
         $this->router->post('/images', fn (Request $request): Response => $this->searchController->images($request));
+
+        // Explicit API aliases. They return the same MD/JSON/SearXNG formats.
+        foreach (['/api/search', '/api/v1/search'] as $path) {
+            $this->router->get($path, fn (Request $request): Response => $this->searchController->search($request));
+            $this->router->post($path, fn (Request $request): Response => $this->searchController->search($request));
+        }
+        foreach (['/api/images', '/api/v1/images'] as $path) {
+            $this->router->get($path, fn (Request $request): Response => $this->searchController->images($request));
+            $this->router->post($path, fn (Request $request): Response => $this->searchController->images($request));
+        }
+
         $this->router->get('/engines', fn (Request $request): Response => $this->enginesController->index($request));
         $this->router->get('/health', fn (Request $request): Response => $this->healthController->index($request));
         $this->router->get('/robots.txt', static fn (Request $request): Response => Response::text(

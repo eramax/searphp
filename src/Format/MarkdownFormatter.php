@@ -21,6 +21,12 @@ final class MarkdownFormatter
             $meta[] = count($set->images) . ' images';
         }
         $meta[] = $set->cached ? 'cached' : $set->tookMs . ' ms';
+        if ($set->page > 1) {
+            $meta[] = 'page ' . $set->page;
+        }
+        if ($set->hasMore) {
+            $meta[] = 'more pages available';
+        }
         $engines = $this->activeEngines($set);
         if ($engines !== []) {
             $meta[] = implode(', ', $engines);

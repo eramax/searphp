@@ -15,6 +15,8 @@ use SearPHP\Support\Logger;
 
 final class SearchService
 {
+    private const MAX_PAGE = 10;
+
     private readonly Ranker $ranker;
 
     public function __construct(
@@ -57,6 +59,7 @@ final class SearchService
 
         $engineStatus = $this->engineStatus($outcomes);
         $partial = $this->isPartial($engineStatus);
+        $hasMore = $this->hasMore($outcomes, $query);
         $tookMs = (int) ((microtime(true) - $started) * 1000);
 
         $set = new SearchResultSet(
@@ -71,6 +74,8 @@ final class SearchService
             partial: $partial,
             page: $query->page,
             limit: $query->limit,
+            hasMore: $hasMore,
+            maxPage: self::MAX_PAGE,
         );
 
         $ttl = $this->cacheTtl($query, $partial);
@@ -98,6 +103,7 @@ final class SearchService
         $images = $this->ranker->mergeImages($outcomes, $query, $this->engines->weights($imageIds));
         $engineStatus = $this->engineStatus($outcomes);
         $partial = $this->isPartial($engineStatus);
+        $hasMore = $this->hasMore($outcomes, $query);
         $tookMs = (int) ((microtime(true) - $started) * 1000);
 
         $set = new SearchResultSet(
@@ -109,6 +115,8 @@ final class SearchService
             partial: $partial,
             page: $query->page,
             limit: $query->limit,
+            hasMore: $hasMore,
+            maxPage: self::MAX_PAGE,
         );
 
         $this->cache->set($cacheKey, $set->toArray(), $this->cacheTtl($query, $partial));
@@ -374,6 +382,33 @@ final class SearchService
     {
         foreach ($status as $entry) {
             if (!in_array($entry['status'], ['ok', 'empty', 'disabled'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A page has more results when at least one paginating engine filled its
+     * page. Engines such as Wikipedia and DDG Instant do not paginate.
+     *
+     * @param array<string, EngineOutcome> $outcomes
+     */
+    private function hasMore(array $outcomes, Query $query): bool
+    {
+        if ($query->page >= self::MAX_PAGE) {
+            return false;
+        }
+
+        foreach ($outcomes as $id => $outcome) {
+            $engine = $this->engines->get($id);
+            if ($engine === null || !$engine->paginationSupported()) {
+                continue;
+            }
+
+            $count = count($outcome->results) + count($outcome->images);
+            if ($count >= $engine->pageSize()) {
                 return true;
             }
         }

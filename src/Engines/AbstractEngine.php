@@ -25,6 +25,16 @@ abstract class AbstractEngine implements EngineInterface
         return (float) $this->config->get('engines.' . $this->id() . '.weight', 1.0);
     }
 
+    public function paginationSupported(): bool
+    {
+        return true;
+    }
+
+    public function pageSize(): int
+    {
+        return 10;
+    }
+
     protected function timeout(): int
     {
         return (int) $this->config->get('engines.' . $this->id() . '.timeout_ms', 1800);

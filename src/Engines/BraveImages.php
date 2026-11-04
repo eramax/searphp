@@ -31,6 +31,11 @@ final class BraveImages extends AbstractEngine
         return ['images'];
     }
 
+    public function pageSize(): int
+    {
+        return 20;
+    }
+
     public function request(Query $query): ?HttpRequest
     {
         $params = [

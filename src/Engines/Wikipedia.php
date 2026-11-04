@@ -27,6 +27,16 @@ final class Wikipedia extends AbstractEngine
         return ['web'];
     }
 
+    public function paginationSupported(): bool
+    {
+        return false;
+    }
+
+    public function pageSize(): int
+    {
+        return 20;
+    }
+
     public function request(Query $query): ?HttpRequest
     {
         $lang = $this->language($query->lang);

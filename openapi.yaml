@@ -127,6 +127,15 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
 
+  /api/search:
+    $ref: '#/paths/~1search'
+  /api/v1/search:
+    $ref: '#/paths/~1search'
+  /api/images:
+    $ref: '#/paths/~1images'
+  /api/v1/images:
+    $ref: '#/paths/~1images'
+
   /images:
     get:
       tags: [Images]
@@ -442,6 +451,15 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/EngineStatus'
+            pagination:
+              type: object
+              properties:
+                page: {type: integer}
+                limit: {type: integer}
+                has_more: {type: boolean}
+                max_page: {type: integer}
+                next_page:
+                  type: [integer, 'null']
 
     Result:
       type: object

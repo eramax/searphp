@@ -22,6 +22,10 @@ interface EngineInterface
 
     public function weight(): float;
 
+    public function paginationSupported(): bool;
+
+    public function pageSize(): int;
+
     public function request(Query $query): ?HttpRequest;
 
     public function parse(HttpResponse $response, Query $query): EngineOutcome;

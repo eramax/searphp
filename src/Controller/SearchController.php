@@ -32,7 +32,7 @@ final class SearchController
 
     public function home(Request $request): Response
     {
-        return Response::html($this->html->page(null, null, $request->basePath()));
+        return Response::html($this->html->page(null, null, $request->basePath(), false));
     }
 
     public function search(Request $request): Response
@@ -40,11 +40,16 @@ final class SearchController
         $query = Query::fromRequest($request, $this->config, $this->engines->ids());
         $set = $this->search->search($query);
 
-        return $this->respond($set, $query, $request->basePath());
+        return $this->respond($set, $query, $request->basePath(), false);
     }
 
     public function images(Request $request): Response
     {
+        $rawQuery = trim((string) ($request->input('q') ?? $request->input('query') ?? ''));
+        if ($rawQuery === '' && $request->preferredFormat('json') === 'html') {
+            return Response::html($this->html->page(null, null, $request->basePath(), true));
+        }
+
         $query = Query::fromRequest($request, $this->config, $this->engines->ids());
         $query = $query->withIncludeImages(true);
 
@@ -54,14 +59,18 @@ final class SearchController
 
         $set = $this->search->images($query);
 
-        return $this->respond($set, $query, $request->basePath());
+        return $this->respond($set, $query, $request->basePath(), true);
     }
 
-    private function respond(SearchResultSet $set, Query $query, string $basePath = ''): Response
-    {
+    private function respond(
+        SearchResultSet $set,
+        Query $query,
+        string $basePath = '',
+        bool $imagesMode = false,
+    ): Response {
         $response = match ($query->format) {
             'md' => Response::markdown($this->markdown->format($set, $query)),
-            'html' => Response::html($this->html->page($set, $query, $basePath)),
+            'html' => Response::html($this->html->page($set, $query, $basePath, $imagesMode)),
             'searx' => Response::json($this->searx->format($set, $query), 200, $query->pretty),
             default => Response::json($this->json->format($set, $query), 200, $query->pretty),
         };

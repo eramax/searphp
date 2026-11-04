@@ -27,6 +27,11 @@ final class DuckDuckGoImages extends AbstractEngine
         return ['images'];
     }
 
+    public function pageSize(): int
+    {
+        return 100;
+    }
+
     public function request(Query $query): ?HttpRequest
     {
         $params = [

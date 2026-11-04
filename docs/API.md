@@ -16,7 +16,10 @@ CORS defaults to `Access-Control-Allow-Origin: *`, with `GET, POST, OPTIONS` and
 
 ```http
 GET /search?q=rust+programming&format=md&limit=10
+GET /api/v1/search?q=rust+programming&format=md&limit=10
 ```
+
+`/api/search`, `/api/v1/search`, `/api/images`, and `/api/v1/images` are aliases with the same behavior.
 
 ```http
 POST /search
@@ -116,12 +119,30 @@ curl "http://localhost:8080/search?q=rust+programming&format=md"
       "duckduckgo": {"status": "ok", "ms": 657, "count": 10},
       "bing": {"status": "ok", "ms": 210, "count": 10},
       "brave": {"status": "ok", "ms": 855, "count": 20}
+    },
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "has_more": true,
+      "max_page": 10,
+      "next_page": 2
     }
   }
 }
 ```
 
 `ok` is true when there is content or when no engine failed. `partial` is true if any requested engine errored, was challenged, timed out, or hit a rate limit. Both can be true at once: useful results plus a failed engine.
+
+### Pagination
+
+- `limit` is the page size, maximum 50.
+- `page` is 1–10.
+- `meta.pagination.has_more` is true when at least one paginating engine filled its page.
+- `next_page` is the next page number or `null`.
+- There is no exact global total; `count`/`number_of_results` is the current page only.
+- Wikipedia and DuckDuckGo Instant Answers do not paginate; their results are repeated on each page.
+
+The HTML interface has Web/Images tabs and Previous/Next links that preserve the query, engines, language, safety, time range, and limit.
 
 ### SearXNG-compatible JSON
 
@@ -159,7 +180,10 @@ curl "http://localhost:8080/search?q=rust+programming&format=md"
 ```http
 GET /images?q=red+fox&format=json&limit=20
 GET /images?q=red+fox&format=md
+GET /api/v1/images?q=red+fox&format=json&limit=20
 ```
+
+The HTML page has an **Images** tab; opening `/images` without a query shows the image search form.
 
 Image JSON entries:
 

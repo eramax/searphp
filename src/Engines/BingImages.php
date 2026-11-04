@@ -28,6 +28,11 @@ final class BingImages extends AbstractEngine
         return ['images'];
     }
 
+    public function pageSize(): int
+    {
+        return 35;
+    }
+
     public function request(Query $query): ?HttpRequest
     {
         $params = [

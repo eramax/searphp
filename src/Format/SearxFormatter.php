@@ -89,6 +89,11 @@ final class SearxFormatter
                 'took_ms' => $set->tookMs,
                 'cached' => $set->cached,
                 'partial' => $set->partial,
+                'page' => $set->page,
+                'limit' => $set->limit,
+                'has_more' => $set->hasMore,
+                'max_page' => $set->maxPage,
+                'next_page' => ($set->hasMore && $set->page < $set->maxPage) ? $set->page + 1 : null,
             ],
         ];
     }

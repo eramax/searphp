@@ -117,6 +117,35 @@ GET /images?q=red+fox&format=md
 | `GET /openapi.yaml` | OpenAPI 3.1 document |
 | `GET /robots.txt` | Disallow crawlers |
 
+Explicit API aliases:
+
+```text
+/api/search        /api/v1/search
+/api/images        /api/v1/images
+```
+
+They accept the same parameters and return the same Markdown/JSON/SearXNG formats as `/search` and `/images`.
+
+The HTML page has **Web** and **Images** tabs, plus Previous/Next pagination.
+
+### Pagination
+
+`limit` is the page size (maximum 50), and `page` is 1–10. The API returns:
+
+```json
+"meta": {
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "has_more": true,
+    "max_page": 10,
+    "next_page": 2
+  }
+}
+```
+
+There is no exact global `total`, because each engine returns one page and results are de-duplicated across engines. `has_more` means at least one paginating engine filled its page. Use `page=2` for the next page.
+
 ### Response headers
 
 `X-Search-Time-Ms`, `X-Cache` (`HIT`/`MISS`), `X-Engines`, `X-Partial`, `X-Request-Id`, and `X-RateLimit-*` are exposed through CORS.

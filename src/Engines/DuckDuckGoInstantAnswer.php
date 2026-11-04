@@ -27,6 +27,16 @@ final class DuckDuckGoInstantAnswer extends AbstractEngine
         return ['web'];
     }
 
+    public function paginationSupported(): bool
+    {
+        return false;
+    }
+
+    public function pageSize(): int
+    {
+        return 10;
+    }
+
     public function request(Query $query): ?HttpRequest
     {
         $params = [
