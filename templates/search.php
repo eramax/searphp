@@ -16,6 +16,7 @@ $q = $query?->q ?? '';
 $format = $query?->format ?? 'html';
 $base = rtrim($basePath ?? '', '/');
 $homeUrl = $base !== '' ? $base . '/' : '/';
+$helpUrl = $base . '/help';
 $searchUrl = $base . '/search';
 $imagesBase = $base . '/images';
 $formAction = $imagesMode ? $imagesBase : $searchUrl;
@@ -94,6 +95,8 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         .brand { font-weight: 750; letter-spacing: -0.03em; font-size: 20px; text-decoration: none; color: var(--fg); }
         .brand span { color: var(--accent); }
         .version { color: var(--muted); font-size: 12px; }
+        .help-link { color: var(--accent); text-decoration: none; font-size: 13px; }
+        .header-right { display: flex; align-items: baseline; gap: 12px; }
         .tagline { color: var(--muted); margin: -8px 0 22px; font-size: 14px; }
         .modes { display: flex; gap: 6px; margin: 0 0 12px; }
         .modes a {
@@ -184,7 +187,10 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
 <div class="wrap">
     <header>
         <a class="brand" href="<?= Html::e($homeUrl) ?>"><?= Html::e($appName) ?><span>.</span></a>
-        <span class="version">v<?= Html::e($version) ?></span>
+        <div class="header-right">
+            <a class="help-link" href="<?= Html::e($helpUrl) ?>">API help</a>
+            <span class="version">v<?= Html::e($version) ?></span>
+        </div>
     </header>
 
     <p class="tagline">Fast web and image search, Markdown and JSON for agents. No trackers.</p>
@@ -327,16 +333,18 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         <?php endif; ?>
     <?php else: ?>
         <div class="examples" style="margin-top:18px">
-            <div><code>GET <?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=md</code></div>
-            <div><code>GET <?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=json&amp;limit=20</code></div>
-            <div><code>GET <?= Html::e($imagesBase) ?>?q=red+fox&amp;format=json</code></div>
-            <div><code>POST /search</code> with a JSON or text/plain body</div>
+            <div><strong>API key required.</strong> Use the key panel above, or send <code>Authorization: Bearer sk_...</code>.</div>
+            <div style="margin-top:8px"><code>curl -H "Authorization: Bearer $KEY" "<?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=md"</code></div>
+            <div><code>curl -H "X-API-Key: $KEY" "<?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=json&amp;limit=20"</code></div>
+            <div><code>curl -H "Authorization: Bearer $KEY" "<?= Html::e($imagesBase) ?>?q=red+fox&amp;format=json"</code></div>
+            <div style="margin-top:8px"><a href="<?= Html::e($helpUrl) ?>">Full quick guide: authentication, Markdown/JSON, pagination, images, MCP →</a></div>
         </div>
     <?php endif; ?>
 
     <footer>
         <?= Html::e($appName) ?> aggregates DuckDuckGo, Bing, Brave, Wikipedia and optional engines.
         Respect each engine's terms and rate limits.
+        <a href="<?= Html::e($helpUrl) ?>">API help</a>
     </footer>
 </div>
 <script src="<?= Html::e(($base !== '' ? $base : '') . '/app.js') ?>" defer></script>

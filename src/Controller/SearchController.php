@@ -35,6 +35,11 @@ final class SearchController
         return Response::html($this->html->page(null, null, $request->basePath(), false));
     }
 
+    public function help(Request $request): Response
+    {
+        return Response::html($this->html->help($request->basePath()));
+    }
+
     public function search(Request $request): Response
     {
         $rawQuery = trim((string) ($request->input('q') ?? $request->input('query') ?? ''));

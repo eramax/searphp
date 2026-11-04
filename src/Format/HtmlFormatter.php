@@ -38,4 +38,25 @@ final class HtmlFormatter
 
         return is_string($html) ? $html : '';
     }
+
+    public function help(string $basePath = ''): string
+    {
+        $appName = (string) $this->config->get('app.name', 'SearPHP');
+        $version = (string) $this->config->get('app.version', '1.0.0');
+        $appUrl = rtrim((string) $this->config->get('app.url', 'http://localhost:8080'), '/');
+        $basePath = rtrim($basePath, '/');
+        $authRequired = (bool) $this->config->get('security.api_auth', true);
+
+        ob_start();
+
+        try {
+            require dirname(__DIR__, 2) . '/templates/help.php';
+            $html = ob_get_clean();
+        } catch (\Throwable $exception) {
+            ob_end_clean();
+            throw $exception;
+        }
+
+        return is_string($html) ? $html : '';
+    }
 }

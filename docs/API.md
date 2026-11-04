@@ -20,7 +20,7 @@ Keys live in `config/api_keys.txt` (outside `public_html`). Use `sha256:<hash>` 
 php bin/key.php --write "agent-name"
 ```
 
-`GET /`, `/health`, `/app.js`, `/robots.txt`, `/openapi.yaml`, and the empty browser forms `/search` and `/images` are public. Search/image/MCP/engines requests require the key.
+`GET /`, `/help`, `/health`, `/app.js`, `/robots.txt`, `/openapi.yaml`, and the empty browser forms `/search` and `/images` are public. Search/image/MCP/engines requests require the key.
 
 The HTML UI has an **API key** panel; the key is stored only in the browser's `localStorage` and sent with its searches. Prefer the `Authorization` header for API clients, because query-string keys can appear in access logs.
 

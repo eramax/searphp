@@ -7,6 +7,20 @@
     var status = document.getElementById('api-key-status');
     var searchForm = document.querySelector('form.search');
 
+    // If a keyed link was opened, keep the key and remove it from the address bar.
+    try {
+        var params = new URLSearchParams(window.location.search);
+        var urlKey = params.get('key');
+        if (urlKey) {
+            localStorage.setItem(STORAGE_KEY, urlKey);
+            params.delete('key');
+            var query = params.toString();
+            history.replaceState(null, '', window.location.pathname + (query ? '?' + query : '') + window.location.hash);
+        }
+    } catch (e) {
+        // ignore storage/history failures
+    }
+
     function getKey() {
         try {
             return localStorage.getItem(STORAGE_KEY) || '';

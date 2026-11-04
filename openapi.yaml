@@ -225,6 +225,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /help:
+    get:
+      tags: [Meta]
+      operationId: help
+      summary: Public quick API guide
+      security: []
+      responses:
+        '200':
+          description: HTML quick guide
+          content:
+            text/html:
+              schema:
+                type: string
+
   /health:
     get:
       tags: [Meta]

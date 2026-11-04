@@ -114,6 +114,7 @@ final class App
     private function routes(): void
     {
         $this->router->get('/', fn (Request $request): Response => $this->searchController->home($request));
+        $this->router->get('/help', fn (Request $request): Response => $this->searchController->help($request));
         $this->router->get('/search', fn (Request $request): Response => $this->searchController->search($request));
         $this->router->post('/search', fn (Request $request): Response => $this->searchController->search($request));
         $this->router->get('/images', fn (Request $request): Response => $this->searchController->images($request));
@@ -158,7 +159,7 @@ final class App
             return false;
         }
 
-        if (in_array($request->path, ['/', '/health', '/robots.txt', '/openapi.yaml', '/app.js'], true)) {
+        if (in_array($request->path, ['/', '/help', '/health', '/robots.txt', '/openapi.yaml', '/app.js'], true)) {
             return false;
         }
 

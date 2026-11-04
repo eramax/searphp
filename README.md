@@ -166,6 +166,7 @@ GET /images?q=red+fox&format=md
 | `GET /health` | PHP version, cache driver health, engine counts |
 | `POST /mcp` | MCP JSON-RPC: `initialize`, `tools/list`, `tools/call` |
 | `GET /openapi.yaml` | OpenAPI 3.1 document |
+| `GET /help` | Public quick API guide |
 | `GET /robots.txt` | Disallow crawlers |
 
 Explicit API aliases:
