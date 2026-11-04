@@ -14,10 +14,11 @@ final class HtmlFormatter
     {
     }
 
-    public function page(?SearchResultSet $set = null, ?Query $query = null): string
+    public function page(?SearchResultSet $set = null, ?Query $query = null, string $basePath = ''): string
     {
         $appName = (string) $this->config->get('app.name', 'SearPHP');
         $version = (string) $this->config->get('app.version', '1.0.0');
+        $basePath = rtrim($basePath, '/');
         $engines = $set !== null ? array_keys($set->engineStatus) : [];
 
         ob_start();

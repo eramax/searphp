@@ -12,12 +12,22 @@ SearPHP runs on normal PHP shared hosting. It does **not** need SSH, Docker, MyS
 
 Check the host's PHP extensions with cPanel → MultiPHP INI Editor or a temporary `phpinfo()` page. Remove the page afterwards.
 
+## Root domain vs subfolder
+
+For a root domain such as `https://search.s.emolike.net/`, leave `APP_BASE_PATH` empty. Auto-detection also handles a subfolder, but you can set it explicitly:
+
+```env
+APP_BASE_PATH=/searphp
+```
+
+Use no trailing slash. For the root domain layout below, keep it empty.
+
 ## Recommended layout: app outside `public_html`
 
 This is the safest layout. Application files (`src`, `config`, `var`, `.env`) are not inside the web root.
 
 ```
-/home/USER/
+/domains/search.s.emolike.net/
 ├── searphp/                    <- upload the whole project here
 │   ├── bootstrap.php
 │   ├── config/

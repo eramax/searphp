@@ -12,6 +12,7 @@ return [
         'version' => '1.0.0',
         'debug' => Env::bool('APP_DEBUG', false),
         'url' => Env::get('APP_URL', 'http://localhost:8080'),
+        'base_path' => Env::get('APP_BASE_PATH'),
         'root' => $root,
     ],
 

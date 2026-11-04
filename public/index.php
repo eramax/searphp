@@ -60,4 +60,4 @@ $app = new App(
     $logger
 );
 
-$app->handle(Request::fromGlobals())->send();
+$app->handle(Request::fromGlobals($config->get('app.base_path')))->send();

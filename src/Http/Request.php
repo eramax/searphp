@@ -22,16 +22,25 @@ final class Request
         private readonly array $headers,
         private readonly string $body,
         private readonly array $server = [],
+        private readonly string $basePath = '',
     ) {
     }
 
-    public static function fromGlobals(): self
+    public static function fromGlobals(?string $basePath = null): self
     {
         $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
         $path = parse_url($uri, PHP_URL_PATH);
         if (!is_string($path) || $path === '') {
             $path = '/';
+        }
+
+        $base = $basePath !== null ? self::normalizeBasePath($basePath) : self::detectBasePath($_SERVER);
+        if ($base !== '' && ($path === $base || str_starts_with($path, $base . '/'))) {
+            $path = substr($path, strlen($base));
+            if (!is_string($path) || $path === '') {
+                $path = '/';
+            }
         }
 
         $headers = [];
@@ -65,7 +74,44 @@ final class Request
             $body = '';
         }
 
-        return new self($method, $path, $_GET, $headers, $body, $_SERVER);
+        return new self($method, $path, $_GET, $headers, $body, $_SERVER, $base);
+    }
+
+    public function basePath(): string
+    {
+        return $this->basePath;
+    }
+
+    /**
+     * Detect /subfolder deployments from the front-controller path.
+     */
+    private static function detectBasePath(array $server): string
+    {
+        $script = (string) ($server['SCRIPT_NAME'] ?? '');
+
+        if (str_ends_with($script, '/public/index.php')) {
+            return self::normalizeBasePath(substr($script, 0, -strlen('/public/index.php')));
+        }
+
+        if (str_ends_with($script, '/index.php')) {
+            return self::normalizeBasePath(substr($script, 0, -strlen('/index.php')));
+        }
+
+        return '';
+    }
+
+    private static function normalizeBasePath(string $basePath): string
+    {
+        $basePath = trim($basePath);
+        if ($basePath === '' || $basePath === '/') {
+            return '';
+        }
+
+        if (!str_starts_with($basePath, '/')) {
+            $basePath = '/' . $basePath;
+        }
+
+        return rtrim($basePath, '/');
     }
 
     public function header(string $name, ?string $default = null): ?string

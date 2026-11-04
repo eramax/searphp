@@ -129,6 +129,7 @@ All settings are environment variables; see `.env.example`.
 
 | Variable | Default | Description |
 |---|---|---|
+| `APP_BASE_PATH` | empty | Empty for a root domain; `/subfolder` if needed |
 | `CORS_ORIGINS` | `*` | `*` or a comma-separated allowlist |
 | `RATE_LIMIT` | `120` | Requests per window per IP |
 | `RATE_WINDOW` | `60` | Window in seconds |

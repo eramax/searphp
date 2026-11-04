@@ -5,15 +5,20 @@
  * @var \SearPHP\Search\SearchResultSet|null $set
  * @var \SearPHP\Search\Query|null $query
  * @var list<string> $engines
+ * @var string $basePath
  */
 
 use SearPHP\Format\Html;
 
 $q = $query?->q ?? '';
 $format = $query?->format ?? 'html';
-$jsonUrl = '/search?' . http_build_query(['q' => $q, 'format' => 'json'], '', '&', PHP_QUERY_RFC3986);
-$mdUrl = '/search?' . http_build_query(['q' => $q, 'format' => 'md'], '', '&', PHP_QUERY_RFC3986);
-$imagesUrl = '/images?' . http_build_query(['q' => $q, 'format' => 'html'], '', '&', PHP_QUERY_RFC3986);
+$base = rtrim($basePath ?? '', '/');
+$homeUrl = $base !== '' ? $base . '/' : '/';
+$searchUrl = $base . '/search';
+$imagesBase = $base . '/images';
+$jsonUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'json'], '', '&', PHP_QUERY_RFC3986);
+$mdUrl = $searchUrl . '?' . http_build_query(['q' => $q, 'format' => 'md'], '', '&', PHP_QUERY_RFC3986);
+$imagesUrl = $imagesBase . '?' . http_build_query(['q' => $q, 'format' => 'html'], '', '&', PHP_QUERY_RFC3986);
 ?>
 <!doctype html>
 <html lang="en">
@@ -123,13 +128,13 @@ $imagesUrl = '/images?' . http_build_query(['q' => $q, 'format' => 'html'], '', 
 <body>
 <div class="wrap">
     <header>
-        <a class="brand" href="/"><?= Html::e($appName) ?><span>.</span></a>
+        <a class="brand" href="<?= Html::e($homeUrl) ?>"><?= Html::e($appName) ?><span>.</span></a>
         <span class="version">v<?= Html::e($version) ?></span>
     </header>
 
     <p class="tagline">Fast web search, Markdown and JSON for agents. No trackers.</p>
 
-    <form class="search" action="/search" method="get">
+    <form class="search" action="<?= Html::e($searchUrl) ?>" method="get">
         <input type="search" name="q" value="<?= Html::e($q) ?>" placeholder="Search the web…" autofocus>
         <select name="format" aria-label="Response format">
             <option value="html"<?= $format === 'html' ? ' selected' : '' ?>>HTML</option>
@@ -207,7 +212,7 @@ $imagesUrl = '/images?' . http_build_query(['q' => $q, 'format' => 'html'], '', 
             <h2>Related searches</h2>
             <div class="suggestions">
                 <?php foreach ($set->suggestions as $suggestion): ?>
-                    <a href="/search?<?= Html::e(http_build_query(['q' => $suggestion], '', '&', PHP_QUERY_RFC3986)) ?>"><?= Html::e($suggestion) ?></a>
+                    <a href="<?= Html::e($searchUrl . '?' . http_build_query(['q' => $suggestion], '', '&', PHP_QUERY_RFC3986)) ?>"><?= Html::e($suggestion) ?></a>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
@@ -230,9 +235,9 @@ $imagesUrl = '/images?' . http_build_query(['q' => $q, 'format' => 'html'], '', 
         <?php endif; ?>
     <?php else: ?>
         <div class="examples" style="margin-top:18px">
-            <div><code>GET /search?q=rust+programming&amp;format=md</code></div>
-            <div><code>GET /search?q=rust+programming&amp;format=json&amp;limit=20</code></div>
-            <div><code>GET /images?q=red+fox&amp;format=json</code></div>
+            <div><code>GET <?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=md</code></div>
+            <div><code>GET <?= Html::e($searchUrl) ?>?q=rust+programming&amp;format=json&amp;limit=20</code></div>
+            <div><code>GET <?= Html::e($imagesBase) ?>?q=red+fox&amp;format=json</code></div>
             <div><code>POST /search</code> with a JSON or text/plain body</div>
         </div>
     <?php endif; ?>
