@@ -48,6 +48,15 @@ final class FileCache implements CacheInterface
     public function set(string $key, mixed $value, int $ttl): void
     {
         $this->maybeCleanup();
+
+        // Do not let the cache consume the last 50 MB of a shared-hosting quota.
+        if (function_exists('disk_free_space')) {
+            $free = @disk_free_space($this->directory);
+            if (is_float($free) && $free < 50_000_000) {
+                return;
+            }
+        }
+
         $file = $this->file($key);
         $dir = dirname($file);
         if (!is_dir($dir)) {
@@ -137,7 +146,7 @@ final class FileCache implements CacheInterface
     /**
      * Remove old cache, temp, and lock files. Called rarely so it does not add
      * per-request filesystem scans. TTLs are at most 30 minutes, so anything
-     * older than a day is safe to remove.
+     * older than two hours is safe to remove.
      */
     private function maybeCleanup(): void
     {
@@ -145,7 +154,7 @@ final class FileCache implements CacheInterface
             return;
         }
 
-        $cutoff = time() - 86_400;
+        $cutoff = time() - 7_200;
         $count = 0;
 
         try {

@@ -1,0 +1,24 @@
+Options -Indexes
+DirectoryIndex public/index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ACME/Let's Encrypt must stay reachable.
+    RewriteRule ^\.well-known/ - [L]
+
+    # Never serve application internals.
+    RewriteRule ^(?:src|config|var|tests|bin|docs|docker|sql|shared-hosting)(?:/|$) - [F,L,NC]
+
+    # Block dotfiles (.env, .git, ...).
+    RewriteRule (^|/)\. - [F,L]
+
+    # Route everything else through the front controller.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ public/index.php [L]
+</IfModule>
+
+<FilesMatch "^(?:\.env|compose\.yaml|Dockerfile|README\.md|LICENSE|bootstrap\.php)$">
+    Require all denied
+</FilesMatch>

@@ -4,6 +4,7 @@ var/cache/*
 var/log/*
 tests
 docs
+shared-hosting
 bin/bench.php
 bin/probe.php
 *.md

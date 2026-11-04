@@ -6,6 +6,9 @@ namespace SearPHP\Support;
 
 final class Env
 {
+    /** @var array<string, string> */
+    private static array $values = [];
+
     /**
      * Minimal .env loader. Existing process environment always wins.
      */
@@ -41,23 +44,33 @@ final class Env
                 $value = substr($value, 1, -1);
             }
 
-            if (getenv($key) !== false) {
+            $existing = function_exists('getenv') ? getenv($key) : false;
+            if ($existing !== false || isset($_ENV[$key])) {
                 continue;
             }
 
-            putenv($key . '=' . $value);
+            self::$values[$key] = $value;
             $_ENV[$key] = $value;
+
+            // Some shared hosts disable putenv(); $_ENV/self::$values still work.
+            if (function_exists('putenv')) {
+                @putenv($key . '=' . $value);
+            }
         }
     }
 
     public static function get(string $key, ?string $default = null): ?string
     {
-        $value = getenv($key);
+        $value = function_exists('getenv') ? getenv($key) : false;
+        if ($value === false) {
+            $value = $_ENV[$key] ?? self::$values[$key] ?? false;
+        }
+
         if ($value === false || $value === '') {
             return $default;
         }
 
-        return $value;
+        return (string) $value;
     }
 
     public static function bool(string $key, bool $default = false): bool

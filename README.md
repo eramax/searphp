@@ -1,6 +1,6 @@
 # SearPHP
 
-A fast, self-hosted web search API built with **PHP 8.5 only**.
+A fast, self-hosted web search API built with **PHP only** (8.2+, tested through 8.5).
 
 No database, no Google API keys, no SerpAPI, no Brave API key, no OpenSERP, no Go/Node/Chromium sidecar, and no external services. The app is one PHP codebase; the cache and rate-limit counters are plain files under `var/cache`.
 
@@ -56,6 +56,12 @@ With a Compose provider:
 cp .env.example .env
 podman compose up -d --build
 ```
+
+### Shared hosting (cPanel)
+
+The project includes `.htaccess`, `.user.ini`, and a `shared-hosting/` front controller for normal PHP hosting. The safest layout puts the application outside `public_html` and only the wrapper inside it. See [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) for the step-by-step guide, 403 checks, permissions, and hardening.
+
+PHP **8.2+** works (tested on 8.2, 8.3, and 8.5). No MySQL, SSH, Composer, or external service is required.
 
 The `searphp-cache` volume keeps cached searches across container restarts. If you delete it, the cache is rebuilt automatically.
 
