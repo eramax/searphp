@@ -1,0 +1,116 @@
+# Security
+
+## Threat model
+
+SearPHP is a read-only search aggregator running on PHP only. The main risks are:
+
+- abuse of the API as a free search proxy
+- SSRF through user-controlled URLs (avoided by design)
+- XSS through malicious result titles/snippets in the HTML UI
+- prompt/Markdown injection into agent contexts
+- cache poisoning or resource exhaustion
+- upstream challenges and rate limits
+
+## Network and SSRF
+
+The API never accepts a URL from the caller. Every upstream host is hard-coded in an engine adapter, so a caller cannot make the server fetch `169.254.169.254`, `localhost`, or an arbitrary intranet host.
+
+`HttpClient` enforces:
+
+- `http` and `https` only
+- TLS certificate and hostname verification
+- maximum 3 redirects, restricted to HTTP/HTTPS
+- connect timeout, per-request timeout, and a total search budget
+- a 2 MB response cap
+- no cookies persisted across requests
+
+## No keys, no external services
+
+There are no engine API keys, no OAuth, no database, and no external search services. The PHP file cache handles caching and counters. The HTTP API is intentionally open: do not expose it directly to the public internet without a reverse proxy, firewall, or private network.
+
+## Rate limiting
+
+- Global per-IP limit: `RATE_LIMIT` requests per `RATE_WINDOW` seconds (default 120/60).
+- `429` responses include `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`.
+- Per-engine limits (`engines.<id>.rate_per_min`) prevent one search from hammering an upstream.
+- Three consecutive engine failures open a 60-second circuit.
+- Counters are stored in the file cache on a single host. They are not shared across multiple containers/replicas.
+
+If you need strict burst shaping, put a reverse proxy (Caddy, Nginx, Traefik) in front with its own limiter.
+
+## CORS
+
+- Default: `Access-Control-Allow-Origin: *`.
+- This is safe for a read-only API with no cookies or credentials. The app never sets `Access-Control-Allow-Credentials`.
+- Set `CORS_ORIGINS=https://app.example,https://agent.example` to restrict origins. The response then echoes the matching origin and adds `Vary: Origin`.
+- Preflight allows `GET, POST, OPTIONS` and the headers `Content-Type, Accept, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id`.
+- Timing/cache/rate-limit headers are exposed so browser-based agents can read them.
+
+## Input validation
+
+- Query length 1–400; control characters are stripped.
+- `limit` is clamped to 1–50; `page` to 1–10; `safesearch` to 0–2.
+- `engines` must match a registered adapter id or alias.
+- `lang` must match `^[a-z]{2}(-[a-z]{2})?$`.
+- `time` must be `day`, `week`, `month`, or `year`.
+- `format` must be `md`, `json`, `searx`, or `html`.
+
+## Output safety
+
+### Markdown
+
+Titles, snippets, image alt text, and errors are escaped for Markdown:
+
+- `\`, backticks, `*`, `_`, `[`, `]` are escaped
+- `<`/`>` become HTML entities
+- newlines are collapsed
+- snippets are truncated
+- links use `<https://...>` autolinks, so parentheses and query strings cannot break the link
+- only `http`/`https` URLs are emitted
+
+This reduces Markdown injection and prevents `javascript:` links.
+
+### HTML
+
+The small HTML page uses `htmlspecialchars(..., ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')` for every dynamic value and only emits `http`/`https` links. It has no JavaScript. The CSP is:
+
+```
+default-src 'none'; style-src 'unsafe-inline'; img-src https: http: data:;
+form-action 'self'; base-uri 'none'; frame-ancestors 'none'
+```
+
+### JSON
+
+`json_encode` uses `JSON_INVALID_UTF8_SUBSTITUTE` so malformed upstream bytes cannot break the response. JSON is served with `application/json`, never as HTML.
+
+## Cache safety
+
+- Cache keys are SHA-256 hashes of normalized query parameters; raw queries are not used as filenames.
+- The file cache writes a temporary file + rename and gzip-compressed JSON.
+- Cache values are decoded with `json_decode`; invalid entries are discarded.
+- The cache is server-side; it is not exposed as a public endpoint.
+- Old cache/temp/lock files (older than 24 hours) are cleaned opportunistically.
+- The app log rotates at 5 MB by default (`LOG_MAX_BYTES`).
+
+## Resource limits
+
+- Apache rejects request bodies larger than 1 MB; PHP also has a 1 MB post limit.
+- The query is capped at 400 characters, results at 50, and pages at 10.
+- Upstream responses are capped at 2 MB.
+- Per-request and total search deadlines are enforced.
+- If you set `TRUST_PROXY=true`, only do so behind a trusted reverse proxy; otherwise clients can spoof `X-Forwarded-For` and bypass IP rate limiting.
+- Do not use `CACHE_DRIVER=none` on a public endpoint; it disables the counter-based rate limiter.
+
+## Deployment checklist
+
+- [ ] Put TLS in front (Caddy/Nginx/Traefik) and enable HSTS (the app adds it when it sees HTTPS).
+- [ ] Set `CORS_ORIGINS` to your app/agent origins if not intentionally public.
+- [ ] Set `LOG_QUERIES=false` unless you have a retention policy.
+- [ ] Keep `APP_DEBUG=false`.
+- [ ] Monitor `/health` and `X-Partial`.
+- [ ] Rate-limit at the reverse proxy as well if the API is public.
+- [ ] Respect upstream terms and engine rate limits.
+
+## Reporting
+
+If you find a vulnerability, open a private issue or contact the maintainer rather than filing a public exploit.

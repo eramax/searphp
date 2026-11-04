@@ -1,0 +1,257 @@
+# API
+
+Base URL: `http://localhost:8080`
+
+The API is open and rate-limited by IP. There are no API keys and no database. A PHP file cache stores results and rate-limit counters.
+
+All responses are UTF-8. JSON is encoded with unescaped slashes/Unicode and invalid UTF-8 substituted, so one bad result cannot break the whole response.
+
+## CORS
+
+CORS defaults to `Access-Control-Allow-Origin: *`, with `GET, POST, OPTIONS` and the headers `Content-Type, Accept, X-Requested-With, MCP-Protocol-Version, Mcp-Session-Id`.
+
+`OPTIONS` requests return `204` with the full preflight response before rate limiting.
+
+## Search
+
+```http
+GET /search?q=rust+programming&format=md&limit=10
+```
+
+```http
+POST /search
+Content-Type: application/json
+
+{
+  "query": "rust programming",
+  "format": "json",
+  "limit": 10,
+  "engines": "duckduckgo,bing,brave",
+  "lang": "en",
+  "safesearch": 0,
+  "time": "month",
+  "include_images": false
+}
+```
+
+`POST /search` also accepts `application/x-www-form-urlencoded` and `text/plain` (the body is the query).
+
+### Parameters
+
+| Name | Type | Default | Notes |
+|---|---|---|---|
+| `q` / `query` | string | required | 1–400 characters |
+| `format` | enum | negotiated | `md`, `json`, `searx`, `html` |
+| `engines` | string | defaults | Comma-separated ids or aliases |
+| `limit` | int | 20 | 1–50; engines may return fewer |
+| `page` | int | 1 | 1–10 |
+| `lang` | string | en | `en`, `de`, `pt-br`, etc. |
+| `safesearch` | int | 0 | 0 off, 1 moderate, 2 strict |
+| `time` | enum | — | `day`, `week`, `month`, `year` |
+| `include_images` | bool | false | Adds image results |
+| `download` | bool | false | Markdown attachment when `format=md` |
+| `pretty` | bool | false | Pretty JSON |
+
+### Content negotiation
+
+| `Accept` | Result |
+|---|---|
+| `text/markdown` | `text/markdown; charset=utf-8` |
+| `application/json` | `application/json; charset=utf-8` |
+| `text/html` | HTML page |
+| `*/*` | JSON |
+
+An explicit `format` query parameter wins over `Accept`.
+
+### Markdown
+
+```bash
+curl "http://localhost:8080/search?q=rust+programming&format=md"
+```
+
+```md
+# rust programming
+
+> 10 results · 863 ms · duckduckgo, bing, brave
+
+## Results
+
+1. [Rust Programming Language](<https://rust-lang.org/>)
+   Rust is a fast, reliable, and productive programming language...
+   `duckduckgo` · `bing` · `brave`
+```
+
+### JSON
+
+```json
+{
+  "query": "rust programming",
+  "ok": true,
+  "count": 10,
+  "image_count": 0,
+  "took_ms": 863,
+  "cached": false,
+  "partial": false,
+  "results": [
+    {
+      "title": "Rust Programming Language",
+      "url": "https://rust-lang.org/",
+      "snippet": "Rust is a fast, reliable, and productive programming language...",
+      "engine": "duckduckgo",
+      "engines": ["duckduckgo", "bing", "brave"],
+      "rank": 1,
+      "score": 0.087253,
+      "published_at": null,
+      "thumbnail": null,
+      "position": 1
+    }
+  ],
+  "images": [],
+  "answers": [],
+  "suggestions": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "engines": {
+      "duckduckgo": {"status": "ok", "ms": 657, "count": 10},
+      "bing": {"status": "ok", "ms": 210, "count": 10},
+      "brave": {"status": "ok", "ms": 855, "count": 20}
+    }
+  }
+}
+```
+
+`ok` is true when there is content or when no engine failed. `partial` is true if any requested engine errored, was challenged, timed out, or hit a rate limit. Both can be true at once: useful results plus a failed engine.
+
+### SearXNG-compatible JSON
+
+`format=searx` returns the shape used by SearXNG clients:
+
+```json
+{
+  "query": "rust",
+  "number_of_results": 10,
+  "results": [
+    {
+      "url": "https://rust-lang.org/",
+      "title": "Rust Programming Language",
+      "content": "...",
+      "engine": "duckduckgo",
+      "engines": ["duckduckgo", "bing"],
+      "score": 1.0,
+      "category": "general",
+      "publishedDate": null,
+      "thumbnail": null,
+      "img_src": null,
+      "priority": ""
+    }
+  ],
+  "answers": [],
+  "corrections": [],
+  "infoboxes": [],
+  "suggestions": [],
+  "unresponsive_engines": []
+}
+```
+
+## Images
+
+```http
+GET /images?q=red+fox&format=json&limit=20
+GET /images?q=red+fox&format=md
+```
+
+Image JSON entries:
+
+```json
+{
+  "title": "Red Fox",
+  "image_url": "https://example.com/fox.jpg",
+  "thumbnail_url": "https://example.com/fox-thumb.jpg",
+  "page_url": "https://example.com/fox-page",
+  "width": 1200,
+  "height": 800,
+  "engine": "duckduckgo_images",
+  "engines": ["duckduckgo_images", "bing_images"],
+  "rank": 1,
+  "score": 0.030141,
+  "position": 1
+}
+```
+
+`/search?q=...&include_images=1` returns web results and images in the same response.
+
+## Engines
+
+```bash
+curl http://localhost:8080/engines
+```
+
+Returns metadata for every pure-PHP adapter, recent stats, and defaults.
+
+Ids:
+
+```
+duckduckgo, duckduckgo_lite, bing, brave, wikipedia, ddg_instant,
+duckduckgo_images, bing_images, brave_images
+```
+
+Aliases: `ddg` → `duckduckgo`, `wiki` → `wikipedia`, `ddg-images` → `duckduckgo_images`.
+
+## Health
+
+```bash
+curl http://localhost:8080/health
+```
+
+```json
+{
+  "status": "ok",
+  "name": "SearPHP",
+  "version": "1.0.0",
+  "php": "8.5.12",
+  "cache": {"driver": "file", "ok": true},
+  "engines": {"enabled": 8, "web": 5, "images": 2},
+  "time": "2026-11-04T16:33:45+00:00"
+}
+```
+
+`status` becomes `degraded` if the file cache directory is not writable. Health is not rate-limited so orchestrators can probe it.
+
+## MCP
+
+`POST /mcp` implements JSON-RPC 2.0:
+
+```bash
+curl -s http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+```
+
+Tools:
+
+- `web_search` — arguments: `q`, `limit`, `engines`, `lang`, `safesearch`, `time`
+- `image_search` — arguments: `q`, `limit`, `engines`, `lang`, `safesearch`
+
+The text content is Markdown. `structuredContent` contains the native JSON for clients that want it.
+
+## Errors
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "The query must contain between 1 and 400 characters."
+  }
+}
+```
+
+| Status | Code | Cause |
+|---|---|---|
+| 400 | `bad_request` | Invalid query, engine, format, language, time range |
+| 404 | `not_found` | Unknown route or disabled MCP |
+| 405 | `method_not_allowed` | Wrong HTTP method |
+| 429 | `rate_limited` | Local rate limit; see `Retry-After` |
+| 500 | `internal_error` | Unexpected failure |
+
+Engine failures do not produce a 500. They appear in `meta.engines` and set `partial: true`.

@@ -1,0 +1,583 @@
+openapi: 3.1.0
+info:
+  title: SearPHP API
+  version: 1.0.0
+  description: |
+    Fast self-hosted web search for AI agents, using PHP 8.5 only.
+    Returns Markdown, native JSON, or SearXNG-compatible JSON.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080
+    description: Local SearPHP
+
+tags:
+  - name: Search
+  - name: Images
+  - name: Meta
+  - name: MCP
+
+paths:
+  /search:
+    get:
+      tags: [Search]
+      operationId: searchWeb
+      summary: Search the web
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Engines'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/SafeSearch'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/IncludeImages'
+        - $ref: '#/components/parameters/Format'
+        - $ref: '#/components/parameters/Download'
+        - $ref: '#/components/parameters/Pretty'
+      responses:
+        '200':
+          description: Search results in the selected format
+          headers:
+            X-Search-Time-Ms:
+              $ref: '#/components/headers/SearchTime'
+            X-Cache:
+              $ref: '#/components/headers/Cache'
+            X-Partial:
+              $ref: '#/components/headers/Partial'
+            X-Engines:
+              $ref: '#/components/headers/Engines'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                native:
+                  value:
+                    query: rust programming
+                    ok: true
+                    count: 1
+                    image_count: 0
+                    took_ms: 612
+                    cached: false
+                    partial: false
+                    results:
+                      - title: Rust Programming Language
+                        url: https://rust-lang.org/
+                        snippet: Rust is a fast, reliable programming language.
+                        engine: duckduckgo
+                        engines: [duckduckgo, bing]
+                        rank: 1
+                        score: 0.087253
+                        published_at: null
+                        thumbnail: null
+                        position: 1
+                    images: []
+                    answers: []
+                    suggestions: []
+                    meta:
+                      page: 1
+                      limit: 20
+                      engines:
+                        duckduckgo: {status: ok, ms: 540, count: 10}
+            text/markdown:
+              schema:
+                type: string
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Search]
+      operationId: searchWebPost
+      summary: Search the web with a JSON, form, or text body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+          text/plain:
+            schema:
+              type: string
+              description: The raw body is used as the query.
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+            text/markdown:
+              schema:
+                type: string
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /images:
+    get:
+      tags: [Images]
+      operationId: searchImages
+      summary: Search images
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Engines'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/SafeSearch'
+        - $ref: '#/components/parameters/Format'
+        - $ref: '#/components/parameters/Pretty'
+      responses:
+        '200':
+          description: Image results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+            text/markdown:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags: [Images]
+      operationId: searchImagesPost
+      summary: Search images with a body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Image results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /engines:
+    get:
+      tags: [Meta]
+      operationId: listEngines
+      summary: List engine adapters, defaults, and recent stats
+      responses:
+        '200':
+          description: Engine metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  engines:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Engine'
+                  stats:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/EngineStats'
+                  defaults:
+                    type: object
+                    properties:
+                      web: {type: array, items: {type: string}}
+                      images: {type: array, items: {type: string}}
+
+  /health:
+    get:
+      tags: [Meta]
+      operationId: health
+      summary: Health and readiness
+      security: []
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /mcp:
+    post:
+      tags: [MCP]
+      operationId: mcp
+      summary: MCP JSON-RPC endpoint
+      description: |
+        Supports initialize, ping, tools/list, and tools/call.
+        Tools are web_search and image_search.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/McpRequest'
+      responses:
+        '200':
+          description: JSON-RPC response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpResponse'
+
+components:
+  parameters:
+    Q:
+      name: q
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 400
+      description: Search query
+    Engines:
+      name: engines
+      in: query
+      schema:
+        type: string
+      description: Comma-separated engine ids or aliases
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 10
+        default: 1
+    Lang:
+      name: lang
+      in: query
+      schema:
+        type: string
+        pattern: '^[a-z]{2}(-[a-z]{2})?$'
+        default: en
+    SafeSearch:
+      name: safesearch
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 2
+        default: 0
+    Time:
+      name: time
+      in: query
+      schema:
+        type: string
+        enum: [day, week, month, year]
+    IncludeImages:
+      name: include_images
+      in: query
+      schema:
+        type: boolean
+        default: false
+    Format:
+      name: format
+      in: query
+      schema:
+        type: string
+        enum: [md, json, searx, html]
+        default: json
+    Download:
+      name: download
+      in: query
+      schema:
+        type: boolean
+        default: false
+    Pretty:
+      name: pretty
+      in: query
+      schema:
+        type: boolean
+        default: false
+
+  headers:
+    SearchTime:
+      schema: {type: integer}
+      description: Server-side search time in milliseconds
+    Cache:
+      schema: {type: string, enum: [HIT, MISS]}
+    Partial:
+      schema: {type: string, enum: ['0', '1']}
+    Engines:
+      schema: {type: string}
+      description: Comma-separated engines that responded
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Local rate limit exceeded
+      headers:
+        Retry-After:
+          schema: {type: integer}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Unexpected server failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    SearchRequest:
+      type: object
+      required: [q]
+      properties:
+        q:
+          type: string
+          minLength: 1
+          maxLength: 400
+        query:
+          type: string
+          description: Alias for q
+        format:
+          type: string
+          enum: [md, json, searx, html]
+        engines:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+        page:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+        lang:
+          type: string
+          default: en
+        safesearch:
+          type: integer
+          minimum: 0
+          maximum: 2
+          default: 0
+        time:
+          type: string
+          enum: [day, week, month, year]
+        include_images:
+          type: boolean
+          default: false
+        download:
+          type: boolean
+          default: false
+        pretty:
+          type: boolean
+          default: false
+
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        ok:
+          type: boolean
+        count:
+          type: integer
+        image_count:
+          type: integer
+        took_ms:
+          type: integer
+        cached:
+          type: boolean
+        partial:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Result'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageResult'
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Answer'
+        suggestions:
+          type: array
+          items: {type: string}
+        meta:
+          type: object
+          properties:
+            page: {type: integer}
+            limit: {type: integer}
+            engines:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/EngineStatus'
+
+    Result:
+      type: object
+      properties:
+        title: {type: string}
+        url: {type: string, format: uri}
+        snippet: {type: string}
+        engine: {type: string}
+        engines:
+          type: array
+          items: {type: string}
+        rank: {type: integer}
+        score: {type: number}
+        published_at:
+          type: [string, 'null']
+        thumbnail:
+          type: [string, 'null']
+        position: {type: integer}
+
+    ImageResult:
+      type: object
+      properties:
+        title: {type: string}
+        image_url: {type: string, format: uri}
+        thumbnail_url: {type: string, format: uri}
+        page_url: {type: string, format: uri}
+        width:
+          type: [integer, 'null']
+        height:
+          type: [integer, 'null']
+        engine: {type: string}
+        engines:
+          type: array
+          items: {type: string}
+        rank: {type: integer}
+        score: {type: number}
+        position: {type: integer}
+
+    Answer:
+      type: object
+      properties:
+        text: {type: string}
+        source: {type: string}
+        url: {type: string, format: uri}
+
+    EngineStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, empty, challenged, rate_limited, error, timeout, disabled, circuit_open]
+        ms: {type: integer}
+        count: {type: integer}
+        error: {type: string}
+
+    EngineStats:
+      type: object
+      properties:
+        requests: {type: integer}
+        failures: {type: integer}
+        fail_streak: {type: integer}
+        last_status:
+          type: [string, 'null']
+        last_ms: {type: integer}
+        last_error:
+          type: [string, 'null']
+        last_failure_at: {type: integer}
+        updated_at: {type: integer}
+
+    Engine:
+      type: object
+      properties:
+        id: {type: string}
+        label: {type: string}
+        categories:
+          type: array
+          items: {type: string}
+        weight: {type: number}
+        enabled: {type: boolean}
+        timeout_ms: {type: integer}
+
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        name: {type: string}
+        version: {type: string}
+        php: {type: string}
+        cache:
+          type: object
+          properties:
+            driver: {type: string}
+            ok: {type: boolean}
+        engines:
+          type: object
+          properties:
+            enabled: {type: integer}
+            web: {type: integer}
+            images: {type: integer}
+        time: {type: string, format: date-time}
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: {type: string}
+            message: {type: string}
+
+    McpRequest:
+      type: object
+      required: [jsonrpc, method]
+      properties:
+        jsonrpc: {type: string, enum: ['2.0']}
+        id:
+          type: [string, integer, 'null']
+        method:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+
+    McpResponse:
+      type: object
+      properties:
+        jsonrpc: {type: string}
+        id:
+          type: [string, integer, 'null']
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          type: object
+          properties:
+            code: {type: integer}
+            message: {type: string}

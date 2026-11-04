@@ -1,0 +1,24 @@
+name: searphp
+
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    environment:
+      CACHE_DRIVER: "file"
+    volumes:
+      - searphp-cache:/var/www/html/var/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/health') !== false ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  searphp-cache:

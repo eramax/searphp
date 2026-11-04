@@ -1,0 +1,10 @@
+.git
+.env
+var/cache/*
+var/log/*
+tests
+docs
+bin/bench.php
+bin/probe.php
+*.md
+docker-compose.override.yaml

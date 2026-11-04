@@ -1,0 +1,21 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "search": [
+      {
+        "ns": 0,
+        "title": "Rust (programming language)",
+        "pageid": 29414838,
+        "snippet": "<span class=\"searchmatch\">Rust</span> is a general-purpose programming language.",
+        "timestamp": "2026-01-01T00:00:00Z"
+      },
+      {
+        "ns": 0,
+        "title": "Rust",
+        "pageid": 123,
+        "snippet": "Rust is a color and a programming language.",
+        "timestamp": "2026-01-02T00:00:00Z"
+      }
+    ]
+  }
+}

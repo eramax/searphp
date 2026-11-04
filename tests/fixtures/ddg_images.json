@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "title": "Red Fox",
+      "image": "https://example.com/fox.jpg",
+      "thumbnail": "https://example.com/fox-thumb.jpg",
+      "url": "https://example.com/fox-page",
+      "width": 1200,
+      "height": 800
+    }
+  ]
+}
