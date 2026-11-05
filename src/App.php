@@ -55,15 +55,30 @@ final class App
                 $this->rateLimit($request);
             }
 
-            if ($this->authRequired($request) && !$this->apiKeys->validateRequest($request)) {
-                $response = Response::error(
-                    'unauthorized',
-                    'A valid API key is required. Send ?key=..., X-API-Key, or Authorization: Bearer.',
-                    401,
-                    !$request->accepts('application/json')
-                )->withHeader('WWW-Authenticate', 'Bearer realm="SearPHP"');
+            if ($this->authRequired($request)) {
+                $provided = $this->apiKeys->providedKey($request);
 
-                return $this->finalize($response, $request, $requestId, $started);
+                // A browser with no key at all gets a small key-entry page,
+                // which can use localStorage/cookie and retry the same URL.
+                if ($provided === null && $this->isHtmlPageRequest($request)) {
+                    return $this->finalize(
+                        $this->searchController->keyRequired($request),
+                        $request,
+                        $requestId,
+                        $started
+                    );
+                }
+
+                if (!$this->apiKeys->validateRequest($request)) {
+                    $response = Response::error(
+                        'unauthorized',
+                        'A valid API key is required. Send ?key=..., X-API-Key, or Authorization: Bearer.',
+                        401,
+                        !$request->accepts('application/json')
+                    )->withHeader('WWW-Authenticate', 'Bearer realm="SearPHP"');
+
+                    return $this->finalize($response, $request, $requestId, $started);
+                }
             }
 
             $response = $this->router->dispatch($request);
@@ -176,6 +191,13 @@ final class App
         return true;
     }
 
+    private function isHtmlPageRequest(Request $request): bool
+    {
+        return $request->method === 'GET'
+            && in_array($request->path, ['/search', '/images'], true)
+            && $request->preferredFormat('json') === 'html';
+    }
+
     private function rateLimit(Request $request): void
     {
         $limit = (int) $this->config->get('security.rate_limit', 120);
@@ -223,6 +245,17 @@ final class App
                 'X-RateLimit-Remaining' => (string) $this->rateMeta['remaining'],
                 'X-RateLimit-Reset' => (string) $this->rateMeta['reset'],
             ]);
+        }
+
+        $contentType = '';
+        foreach ($response->headers() as $name => $value) {
+            if (strcasecmp($name, 'Content-Type') === 0) {
+                $contentType = strtolower($value);
+                break;
+            }
+        }
+        if (str_starts_with($contentType, 'text/html')) {
+            $response = $response->withHeader('Cache-Control', 'no-store');
         }
 
         if ($request->isSecure()) {

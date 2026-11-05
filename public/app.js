@@ -7,6 +7,7 @@
     var hidden = document.getElementById('api-key-field');
     var status = document.getElementById('api-key-status');
     var searchForm = document.querySelector('form.search');
+    var keyPage = document.body.getAttribute('data-key-page') === '1';
 
     function setCookie(key) {
         var secure = window.location.protocol === 'https:' ? '; Secure' : '';
@@ -114,6 +115,10 @@
             localStorage.setItem(STORAGE_KEY, value);
             setCookie(value);
             apply();
+            if (keyPage) {
+                window.location.reload();
+                return;
+            }
         } catch (e) {
             setStatus('Could not access localStorage.', 'warn');
         }
@@ -154,6 +159,23 @@
     if (searchForm && searchForm.getAttribute('data-auth-required') === '1' && !getKey()) {
         document.querySelector('.key-panel')?.setAttribute('open', '');
         setStatus('Enter an API key to search.', 'warn');
+    }
+
+    // On the key-required page, retry once automatically if this browser
+    // already has a key in localStorage.
+    if (keyPage && getKey()) {
+        try {
+            var retryFlag = 'searphp_key_retry:' + window.location.pathname + window.location.search;
+            if (!sessionStorage.getItem(retryFlag)) {
+                sessionStorage.setItem(retryFlag, '1');
+                setCookie(getKey());
+                window.location.reload();
+            } else {
+                setStatus('Saved key was rejected. Enter a valid key.', 'warn');
+            }
+        } catch (e) {
+            setStatus('Press Save and continue.', 'warn');
+        }
     }
 
     // Image preview modal. If <dialog> is unavailable, the normal link opens.

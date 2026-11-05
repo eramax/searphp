@@ -8,6 +8,7 @@
  * @var string $basePath
  * @var bool $imagesMode
  * @var bool $authRequired
+ * @var string $assetVersion
  */
 
 use SearPHP\Format\Html;
@@ -215,7 +216,7 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
             <button type="button" id="api-key-clear">Clear</button>
             <span id="api-key-status" class="key-status muted">No key saved.</span>
         </div>
-        <p>Stored in this browser only (localStorage) and sent with this UI's searches. For API clients use <code>Authorization: Bearer</code>.</p>
+        <p>Stored in this browser (localStorage plus a same-site cookie for refresh) and sent with this UI's searches. For API clients use <code>Authorization: Bearer</code>.</p>
     </details>
 
     <form class="search" action="<?= Html::e($formAction) ?>" method="get" data-auth-required="<?= $authRequired ? '1' : '0' ?>">
@@ -381,6 +382,6 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
     </div>
 </dialog>
 
-<script src="<?= Html::e(($base !== '' ? $base : '') . '/app.js') ?>" defer></script>
+<script src="<?= Html::e(($base !== '' ? $base : '') . '/app.js?v=' . rawurlencode($assetVersion)) ?>" defer></script>
 </body>
 </html>

@@ -40,6 +40,12 @@ final class SearchController
         return Response::html($this->html->help($request->basePath()));
     }
 
+    public function keyRequired(Request $request): Response
+    {
+        return Response::html($this->html->keyRequired($request->basePath()))
+            ->withHeader('Cache-Control', 'no-store');
+    }
+
     public function search(Request $request): Response
     {
         $rawQuery = trim((string) ($request->input('q') ?? $request->input('query') ?? ''));
