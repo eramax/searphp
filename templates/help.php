@@ -128,7 +128,7 @@ curl -H "Authorization: Bearer $KEY" \
   "<?= Html::e($appUrl . $base) ?>/mcp"</code></pre>
 
     <h2>Browser UI</h2>
-    <p>Open <a href="<?= Html::e($uiUrl) ?>"><?= Html::e($uiUrl) ?></a>, click <strong>API key (required)</strong>, paste the key, and save it. It is stored in this browser's <code>localStorage</code> and sent with the UI's searches and internal links.</p>
+    <p>Open <a href="<?= Html::e($uiUrl) ?>"><?= Html::e($uiUrl) ?></a>, click <strong>API key (required)</strong>, paste the key, and save it. It is stored in this browser's <code>localStorage</code> and mirrored to a same-site cookie, so refreshing a results page keeps working without putting the key back in the URL.</p>
 
     <footer>
         <?= Html::e($appName) ?> — PHP-only search. <?php if ($authRequired): ?>API key authentication is enabled.<?php else: ?>API key authentication is disabled.<?php endif; ?>

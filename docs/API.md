@@ -22,7 +22,7 @@ php bin/key.php --write "agent-name"
 
 `GET /`, `/help`, `/health`, `/app.js`, `/robots.txt`, `/openapi.yaml`, and the empty browser forms `/search` and `/images` are public. Search/image/MCP/engines requests require the key.
 
-The HTML UI has an **API key** panel; the key is stored only in the browser's `localStorage` and sent with its searches. Prefer the `Authorization` header for API clients, because query-string keys can appear in access logs.
+The HTML UI has an **API key** panel; the key is stored in the browser's `localStorage`, mirrored into a same-site cookie for refresh, and sent with its searches. Prefer the `Authorization` header for API clients, because query-string keys can appear in access logs.
 
 All responses are UTF-8. JSON is encoded with unescaped slashes/Unicode and invalid UTF-8 substituted, so one bad result cannot break the whole response.
 

@@ -169,6 +169,26 @@ final class Request
         return [];
     }
 
+    public function cookie(string $name): ?string
+    {
+        $header = $this->header('cookie');
+        if ($header === null || $header === '') {
+            return null;
+        }
+
+        foreach (explode(';', $header) as $pair) {
+            $parts = explode('=', trim($pair), 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+            if (rawurldecode($parts[0]) === $name) {
+                return rawurldecode($parts[1]);
+            }
+        }
+
+        return null;
+    }
+
     public function isPlainText(): bool
     {
         return str_contains(strtolower($this->header('content-type', '') ?? ''), 'text/plain');

@@ -354,6 +354,11 @@ test('API key store accepts headers, bearer, and query keys', function (): void 
 
     $query = new Request('GET', '/search', ['key' => $plain], [], '', []);
     assert_true($store->validateRequest($query));
+
+    $cookie = new Request('GET', '/search', [], ['cookie' => 'searphp_key=' . rawurlencode($plain)], '', []);
+    assert_same($plain, $store->providedKey($cookie));
+    assert_true($store->validateRequest($cookie));
+
     assert_true(!$store->validateRequest(new Request('GET', '/search', [], [], '', [])));
 
     @unlink($file);

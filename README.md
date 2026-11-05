@@ -96,7 +96,7 @@ X-API-Key: sk_...
 GET /search?q=rust&key=sk_...
 ```
 
-The browser UI stores the key in `localStorage` and sends it with the form and internal links. For API clients, prefer the `Authorization` header: query-string keys can appear in access logs.
+The browser UI stores the key in `localStorage` and mirrors it into a same-site cookie, so refreshing a results page keeps working without the key in the URL. For API clients, prefer the `Authorization` header: query-string keys can appear in access logs.
 
 Key file:
 

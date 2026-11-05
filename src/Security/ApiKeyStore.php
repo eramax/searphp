@@ -36,6 +36,13 @@ final class ApiKeyStore
             return trim($matches[1]);
         }
 
+        // The browser UI stores the key in localStorage and mirrors it into a
+        // same-site cookie so page refreshes do not need the key in the URL.
+        $cookieKey = $request->cookie('searphp_key');
+        if (is_string($cookieKey) && $cookieKey !== '') {
+            return $cookieKey;
+        }
+
         $queryKey = trim((string) ($request->input('key') ?? $request->input('api_key') ?? ''));
 
         return $queryKey !== '' ? $queryKey : null;

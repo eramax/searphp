@@ -37,7 +37,7 @@ SearPHP requires its own API key by default:
 - set restrictive permissions (`chmod 600`) where possible;
 - `API_AUTH_ENABLED=false` disables the check, which is not recommended on a public host.
 
-Clients can send the key in `Authorization: Bearer`, `X-API-Key`, or `?key=`. Query-string keys can appear in web-server access logs, so prefer the header for API clients. The browser UI stores the key in `localStorage` and sends it with form searches and internal links.
+Clients can send the key in `Authorization: Bearer`, `X-API-Key`, or `?key=`. Query-string keys can appear in web-server access logs, so prefer the header for API clients. The browser UI stores the key in `localStorage` and mirrors it into a same-site cookie so page refreshes work without the key in the URL.
 
 ## Rate limiting
 

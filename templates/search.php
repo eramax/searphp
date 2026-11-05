@@ -162,6 +162,13 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         .images figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
         .images img { display: block; width: 100%; height: 120px; object-fit: cover; background: var(--line); }
         .images figcaption { padding: 7px 9px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .image-modal { border: 0; padding: 0; background: transparent; max-width: 94vw; max-height: 94vh; }
+        .image-modal::backdrop { background: rgb(0 0 0 / 0.78); }
+        .image-modal .modal-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+        .image-modal img { display: block; max-width: 92vw; max-height: 78vh; width: auto; height: auto; border-radius: 8px; }
+        .image-modal .modal-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 4px 2px; color: var(--muted); font-size: 12px; }
+        .image-modal .modal-meta a { color: var(--accent); text-decoration: none; white-space: nowrap; }
+        .image-modal .modal-close { position: absolute; top: 6px; right: 6px; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 999px; width: 30px; height: 30px; font-size: 18px; line-height: 1; cursor: pointer; }
         .suggestions { display: flex; gap: 7px; flex-wrap: wrap; }
         .suggestions a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; background: var(--card); }
         details { margin-top: 22px; color: var(--muted); font-size: 13px; }
@@ -281,10 +288,23 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
             <h2>Images</h2>
             <div class="images">
                 <?php foreach ($set->images as $image): ?>
-                    <?php $imageUrl = Html::url($image->imageUrl); if ($imageUrl === '') { continue; } ?>
+                    <?php
+                    $imageUrl = Html::url($image->imageUrl);
+                    if ($imageUrl === '') {
+                        continue;
+                    }
+                    $imageTitle = $image->title !== '' ? $image->title : $image->pageUrl;
+                    $imageSource = Html::url($image->pageUrl);
+                    ?>
                     <figure>
-                        <a href="<?= $imageUrl ?>" target="_blank" rel="noopener noreferrer"><img src="<?= $imageUrl ?>" alt="<?= Html::e($image->title) ?>" loading="lazy" referrerpolicy="no-referrer"></a>
-                        <figcaption><?= Html::e($image->title !== '' ? $image->title : $image->pageUrl) ?></figcaption>
+                        <a href="<?= $imageUrl ?>"
+                           data-image-modal
+                           data-full="<?= $imageUrl ?>"
+                           data-title="<?= Html::e($imageTitle) ?>"
+                           data-source="<?= $imageSource ?>"
+                           target="_blank"
+                           rel="noopener noreferrer"><img src="<?= $imageUrl ?>" alt="<?= Html::e($imageTitle) ?>" loading="lazy" referrerpolicy="no-referrer"></a>
+                        <figcaption><?= Html::e($imageTitle) ?></figcaption>
                     </figure>
                 <?php endforeach; ?>
             </div>
@@ -347,6 +367,20 @@ $pageUrl = static fn (int $page): string => $paginationBase . '?' . http_build_q
         <a href="<?= Html::e($helpUrl) ?>">API help</a>
     </footer>
 </div>
+
+<dialog id="image-modal" class="image-modal" aria-label="Image preview">
+    <div class="modal-card">
+        <form method="dialog">
+            <button class="modal-close" aria-label="Close image preview">×</button>
+        </form>
+        <img id="image-modal-img" alt="">
+        <div class="modal-meta">
+            <span id="image-modal-title"></span>
+            <a id="image-modal-source" href="#" target="_blank" rel="noopener noreferrer" hidden>Open source page</a>
+        </div>
+    </div>
+</dialog>
+
 <script src="<?= Html::e(($base !== '' ? $base : '') . '/app.js') ?>" defer></script>
 </body>
 </html>
