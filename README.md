@@ -225,6 +225,20 @@ All settings are environment variables; see `.env.example`.
 
 There is no database. API authentication is required by default and rate limiting is still applied per IP; put the service behind a reverse proxy or firewall as an extra layer.
 
+## Page weight
+
+The HTML UI is intentionally dependency-free:
+
+| Asset | Uncompressed | Typical gzip transfer |
+|---|---:|---:|
+| Home HTML (inline CSS) | ~12.6 kB | ~4.7 kB |
+| `app.js` | ~7.3 kB | ~3.2 kB |
+| External CSS/fonts/libraries | 0 | 0 |
+
+Total is roughly **20 kB uncompressed / 8 kB compressed** before result images. There is no jQuery, Bootstrap, font file, or external stylesheet.
+
+If DevTools shows large `dropdown.css`, `dropdown.js`, `polyfills.js`, or `dropdown.html` entries, they are not served by SearPHP. They come from a browser extension (password manager/SEO toolbar) or an injected overlay. Verify in an incognito window with extensions disabled, or check the request initiator; the live app only references `/app.js`.
+
 ## How it is fast
 
 - No framework, no Composer runtime dependencies.

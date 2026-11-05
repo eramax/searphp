@@ -152,6 +152,7 @@ final class App
             200,
             'text/plain; charset=utf-8'
         ));
+        $this->router->get('/favicon.ico', static fn (Request $request): Response => Response::noContent(204));
         $this->router->get('/app.js', function (Request $request): Response {
             $file = (string) $this->config->get('app.root', dirname(__DIR__)) . '/public/app.js';
             $body = is_file($file) ? (string) file_get_contents($file) : '';
@@ -174,7 +175,7 @@ final class App
             return false;
         }
 
-        if (in_array($request->path, ['/', '/help', '/health', '/robots.txt', '/openapi.yaml', '/app.js'], true)) {
+        if (in_array($request->path, ['/', '/help', '/health', '/robots.txt', '/openapi.yaml', '/app.js', '/favicon.ico'], true)) {
             return false;
         }
 
